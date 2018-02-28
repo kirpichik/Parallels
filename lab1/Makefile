@@ -1,7 +1,7 @@
 
 CC=mpicc
 CFLAGS=-c -Wall -std=c99
-LDFLAGS=
+LDFLAGS=-lm
 SOURCES=main.c matrix.c
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=lab
