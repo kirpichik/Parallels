@@ -1,13 +1,16 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <math.h>
 
-#define SIZE 5
+#define SIZE 10
 #define THETA 0.001
 #define EPSILON 0.000001
 
-double multMatrixPart(double[SIZE], double[SIZE]);
+int* prepareLengths(int);
+int* prepareDispls(int);
+void multMatrixPart(double[SIZE][SIZE], int, int, double[SIZE], double*);
 void fillVector(double[SIZE]);
 void fillMatrix(double[SIZE][SIZE]);
 void fillZero(double[SIZE]);
@@ -20,7 +23,9 @@ void multScalar(double, double[SIZE], double[SIZE]);
 
 int main(int argc, char* argv[]) {
 	int size, rank;
-	double result;
+	int* lengths;
+	int* displs;
+	double* result;
 	double MATRIX_A[SIZE][SIZE]; // Matrix A
 	double VECTOR_B[SIZE]; // Vector b
 	double VECTOR_X[SIZE]; // Vector x
@@ -30,10 +35,17 @@ int main(int argc, char* argv[]) {
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-	if (size != SIZE) {
-		printf("Wrong sizes.\n");
-		return 1;
+	// Check process count overflow
+	if (size > SIZE) {
+		if (!rank)
+			printf("Processes > Matrix size.\n");
+		MPI_Finalize();
+		return 0;
 	}
+
+	lengths = prepareLengths(size);
+	displs = prepareDispls(size);
+	result = (double*) calloc(lengths[rank], sizeof(double));
 
 	// Fill start data
 	fillVector(VECTOR_X);
@@ -50,8 +62,8 @@ int main(int argc, char* argv[]) {
 
 	while (1) {
 		// Count A * x_n
-		result = multMatrixPart(MATRIX_A[rank], VECTOR_X);
-		MPI_Allgather(&result, 1, MPI_DOUBLE, &RESULT, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+		multMatrixPart(MATRIX_A, displs[rank], lengths[rank], VECTOR_X, result);
+		MPI_Allgatherv(result, lengths[rank], MPI_DOUBLE, RESULT, lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
 		// Count A * x_n - b
 		subVectors(RESULT, VECTOR_B, RESULT);
@@ -71,15 +83,35 @@ int main(int argc, char* argv[]) {
 	if (!rank)
 		printVector(VECTOR_X);
 
+	free(result);
+	free(lengths);
+
 	MPI_Finalize();
 	return 0;
 }
 
-double multMatrixPart(double line[SIZE], double vector[SIZE]) {
-	double result = 0;
-	for (size_t i = 0; i < SIZE; i++)
-		result += line[i] * vector[i];
+int* prepareDispls(int size) {
+	int* result = (int*) malloc(sizeof(int) * size);
+	for (size_t i = 0; i < size; i++)
+		result[i] = SIZE / size * i;
 	return result;
+}
+
+int* prepareLengths(int size) {
+	int* result = (int*) malloc(sizeof(int) * size);
+	for (size_t i = 0; i < size; i++)
+		result[i] = SIZE / size + (i == (size - 1) ? SIZE % size : 0);
+	return result;
+}
+
+void multMatrixPart(double matrix[SIZE][SIZE], int begin, int len, 
+		double vector[SIZE], double* result) {
+	for (size_t i = 0; i < len; i++)
+		result[i] = 0;
+
+	for (size_t i = 0; i < len; i++)
+		for (size_t j = 0; j < SIZE; j++)
+			result[i] += matrix[i + begin][j] * vector[j];
 }
 
 void fillVector(double vector[SIZE]) {
@@ -95,7 +127,7 @@ void fillZero(double vector[SIZE]) {
 void fillMatrix(double matrix[SIZE][SIZE]) {
 	for (size_t i = 0; i < SIZE; i++)
 		for (size_t j = 0; j < SIZE; j++)
-			matrix[i][j] = i == j ? 4 : 0;
+			matrix[i][j] = i == j ? 2 : 0;
 }
 
 void printVector(double vector[SIZE]) {
