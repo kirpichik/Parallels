@@ -6,7 +6,7 @@
 #include "matrix.h"
 
 int* prepareLengths(int);
-int* prepareDispls(int);
+int* prepareDispls(int, int*);
 void multMatrixPart(double[SIZE][SIZE], int, int, double[SIZE], double*);
 
 int main(int argc, char* argv[]) {
@@ -32,7 +32,12 @@ int main(int argc, char* argv[]) {
 	}
 
 	lengths = prepareLengths(size);
-	displs = prepareDispls(size);
+	displs = prepareDispls(size, lengths);
+
+	printf("%d/%d, dip: %d, len: %d\n", rank, size, displs[rank], lengths[rank]);
+	MPI_Finalize();
+	return 0;
+
 	result = (double*) calloc(lengths[rank], sizeof(double));
 
 	// Fill start data
@@ -78,22 +83,23 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-int* prepareDispls(int size) {
+int* prepareDispls(int size, int* lengths) {
 	int* result = (int*) malloc(sizeof(int) * size);
-	for (size_t i = 0; i < size; i++)
-		result[i] = SIZE / size * i;
+	result[0] = 0;
+	for (size_t i = 1; i < size; i++)
+		result[i] += lengths[i - 1];
 	return result;
 }
 
 int* prepareLengths(int size) {
 	int* result = (int*) malloc(sizeof(int) * size);
+	int add = SIZE % size;
 	for (size_t i = 0; i < size; i++)
-		result[i] = SIZE / size + (i == (size - 1) ? SIZE % size : 0);
+		result[i] = SIZE / size + (add-- > 0 ? 1 : 0);
 	return result;
 }
 
-void multMatrixPart(double matrix[SIZE][SIZE], int begin, int len, 
-		double vector[SIZE], double* result) {
+void multMatrixPart(double matrix[SIZE][SIZE], int begin, int len, double vector[SIZE], double* result) {
 	for (size_t i = 0; i < len; i++)
 		result[i] = 0;
 
