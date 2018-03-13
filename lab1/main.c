@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "matrix.h"
 
@@ -34,9 +35,9 @@ int main(int argc, char* argv[]) {
 	lengths = prepareLengths(size);
 	displs = prepareDispls(size, lengths);
 
-	printf("%d/%d, dip: %d, len: %d\n", rank, size, displs[rank], lengths[rank]);
-	MPI_Finalize();
-	return 0;
+	//printf("%d/%d, dip: %d, len: %d\n", rank + 1, size, displs[rank], lengths[rank]);
+	//MPI_Finalize();
+	//return 0;
 
 	result = (double*) calloc(lengths[rank], sizeof(double));
 
@@ -86,8 +87,9 @@ int main(int argc, char* argv[]) {
 int* prepareDispls(int size, int* lengths) {
 	int* result = (int*) malloc(sizeof(int) * size);
 	result[0] = 0;
+	int sum = 0;
 	for (size_t i = 1; i < size; i++)
-		result[i] += lengths[i - 1];
+		result[i] = sum += lengths[i - 1];
 	return result;
 }
 
@@ -100,8 +102,7 @@ int* prepareLengths(int size) {
 }
 
 void multMatrixPart(double matrix[SIZE][SIZE], int begin, int len, double vector[SIZE], double* result) {
-	for (size_t i = 0; i < len; i++)
-		result[i] = 0;
+	memset(result, 0, len * sizeof(double));
 
 	for (size_t i = 0; i < len; i++)
 		for (size_t j = 0; j < SIZE; j++)
