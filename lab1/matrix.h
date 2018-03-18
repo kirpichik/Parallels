@@ -1,7 +1,7 @@
 
 #include <stdbool.h>
 
-#define SIZE 5
+#define SIZE 10
 #define THETA 0.001
 #define EPSILON 0.000001
 

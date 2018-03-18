@@ -17,7 +17,7 @@ void fillZero(double vector[SIZE]) {
 void fillMatrix(double matrix[SIZE][SIZE]) {
 	for (size_t i = 0; i < SIZE; i++)
 		for (size_t j = 0; j < SIZE; j++)
-			matrix[i][j] = i == j ? 2 : 0;
+			matrix[i][j] = i == j ? (2 * SIZE) : 1;
 }
 
 void printVector(double vector[SIZE]) {
