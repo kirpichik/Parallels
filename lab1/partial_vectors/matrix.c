@@ -32,15 +32,15 @@ void printMatrixPart(double** part, int count) {
 		printVector(part[i]);
 }
 
-static double normalize(double vector[SIZE]) {
+double normalize(double vector[SIZE]) {
 	double sum = 0;
 	for (size_t i = 0; i < SIZE; i++)
 		sum += vector[i] * vector[i];
 	return sqrt(sum);
 }
 
-bool isFinish(double vectorA[SIZE], double vectorB[SIZE]) {
-	return normalize(vectorA) / normalize(vectorB) < EPSILON;
+bool isFinish(double vectorA[SIZE], double vectorBNorm) {
+	return normalize(vectorA) / vectorBNorm < EPSILON;
 }
 
 void subVectors(double vectorA[SIZE], double vectorB[SIZE], double result[SIZE]) {

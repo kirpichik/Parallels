@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
 	double VECTOR_B[SIZE]; // Vector b
 	double VECTOR_X[SIZE]; // Vector x
 	double collectedResult[SIZE]; // Inter-result
+	double vectorBNorm; // Normalized vector b
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -47,6 +48,7 @@ int main(int argc, char* argv[]) {
 	fillVector(VECTOR_X);
 	fillMatrixPart(MATRIX_A, displs[rank], lengths[rank]);
 	fillVector(VECTOR_B);
+	vectorBNorm = normalize(VECTOR_B);
 
 	//printMatrix(MATRIX_A, lengths[rank]);
 	if (!rank) {
@@ -65,7 +67,7 @@ int main(int argc, char* argv[]) {
 		subVectors(collectedResult, VECTOR_B, collectedResult);
 
 		// Check finish
-		if (isFinish(collectedResult, VECTOR_B))
+		if (isFinish(collectedResult, vectorBNorm))
 			break;
 
 		// Count theta * (A * x_n - b)

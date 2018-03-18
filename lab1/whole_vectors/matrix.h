@@ -31,9 +31,14 @@ void printVector(double*);
 void printMatrix(double**, int);
 
 /**
+ * Normalize vector
+ */
+double normalize(double vector[SIZE]);
+
+/**
  * Checks epsilon offset for finish calculating.
  */
-bool isFinish(double[SIZE], double[SIZE]);
+bool isFinish(double[SIZE], double);
 
 /**
  * Substraction of two vectors.
