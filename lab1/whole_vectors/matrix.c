@@ -7,7 +7,7 @@
 
 void fillVector(double vector[SIZE]) {
 	for (size_t i = 0; i < SIZE; i++)
-		vector[i] = i;
+		vector[i] = i + 1;
 }
 
 void fillZero(double vector[SIZE]) {
@@ -18,7 +18,7 @@ void fillZero(double vector[SIZE]) {
 void fillMatrixPart(double** part, int begin, int count) {
 	for (size_t i = 0; i < count; i++)
 		for (size_t j = 0; j < SIZE; j++)
-			part[i][j] = (i + begin) == j ? (2 * SIZE) : 1;
+			part[i][j] = (i + begin) == j ? (2) : 1;
 }
 
 void printVector(double* vector) {

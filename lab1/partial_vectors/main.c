@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "matrix.h"
 
@@ -10,19 +11,22 @@ int* prepareLengths(int);
 int* prepareDispls(int, int*);
 
 int main(int argc, char* argv[]) {
-	int size, rank;
+	int size, rank, part_size, part_start;
 	int* lengths;
 	int* displs;
-	double* multResult;
+	double* partResult; // Partical step result
 	double** MATRIX_A; // Matrix A
-	double VECTOR_B[SIZE]; // Vector b
-	double VECTOR_X[SIZE]; // Vector x
+	double* VECTOR_B; // Vector b
+	double* VECTOR_X; // Vector x
 	double collectedResult[SIZE]; // Inter-result
 	double vectorBNorm; // Normalized vector b
+	int extendedPart;
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	extendedPart = (int) ceil((double) SIZE / size);
 
 	// Check process count overflow
 	if (size > SIZE) {
@@ -34,55 +38,64 @@ int main(int argc, char* argv[]) {
 
 	lengths = prepareLengths(size);
 	displs = prepareDispls(size, lengths);
+	part_size = lengths[rank];
+	part_start = displs[rank];
 
-	//printf("%d/%d, dip: %d, len: %d\n", rank + 1, size, displs[rank], lengths[rank]);
-	//MPI_Finalize();
-	//return 0;
+	partResult = (double*) calloc(extendedPart, sizeof(double));
 
-	multResult = (double*) calloc(lengths[rank], sizeof(double));
-
-	// Fill start data
-	MATRIX_A = (double**) malloc(sizeof(double*) * lengths[rank]);
-	for (size_t i = 0; i < lengths[rank]; i++)
+	// Init start data
+	MATRIX_A = (double**) malloc(sizeof(double*) * part_size);
+	for (size_t i = 0; i < part_size; i++)
 		MATRIX_A[i] = (double*) malloc(sizeof(double) * SIZE);
-	fillVector(VECTOR_X);
-	fillMatrixPart(MATRIX_A, displs[rank], lengths[rank]);
-	fillVector(VECTOR_B);
-	vectorBNorm = normalize(VECTOR_B);
+	VECTOR_B = (double*) malloc(sizeof(double) * extendedPart);
+	VECTOR_X = (double*) calloc(extendedPart, sizeof(double));
 
-	//printMatrix(MATRIX_A, lengths[rank]);
-	if (!rank) {
-		printf("=====VECTOR B:=====\n");
-		printVector(VECTOR_B);
-		printf("Counting vector x:\n");
-	}
+	// Fills start data
+	fillMatrixPart(MATRIX_A, part_start, part_size);
+	fillVectorPart(VECTOR_B, part_start,  part_size);
+
+	// Count ||b||
+	MPI_Allgatherv(VECTOR_B, part_size, MPI_DOUBLE, collectedResult, 
+			lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+	vectorBNorm = normalize(collectedResult, SIZE);
 
 	while (1) {
 		// Count A * x_n
-		multMatrixPart(MATRIX_A, lengths[rank], VECTOR_X, multResult);
-		MPI_Allgatherv(multResult, lengths[rank], MPI_DOUBLE, collectedResult, 
+		//printf("pr: %d multing matrix part...\n", rank);
+		multMatrixPart(MATRIX_A, VECTOR_X, partResult, lengths, displs, size, rank);
+		MPI_Allgatherv(partResult, part_size, MPI_DOUBLE, collectedResult, 
 				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
+		//printf("pr: %d finish mult\n", rank);
 
 		// Count A * x_n - b
-		subVectors(collectedResult, VECTOR_B, collectedResult);
+		subVectors(partResult, VECTOR_B, partResult, extendedPart);
 
 		// Check finish
+		MPI_Allgatherv(partResult, part_size, MPI_DOUBLE, collectedResult, 
+				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 		if (isFinish(collectedResult, vectorBNorm))
 			break;
 
 		// Count theta * (A * x_n - b)
-		multScalar(THETA, collectedResult, collectedResult);
+		multScalar(THETA, partResult, partResult, extendedPart);
 
 		// Count next x_{n + 1}
-		subVectors(VECTOR_X, collectedResult, VECTOR_X);
+		subVectors(VECTOR_X, partResult, VECTOR_X, extendedPart);
 	}
 
-	// Zero rank
-	if (!rank)
-		printVector(VECTOR_X);
+	// Prints results
+	
+	printf("pr(%d): ", rank);
+	printVector(VECTOR_X, part_size);
 
-	free(multResult);
+	free(partResult);
+	for (size_t i = 0; i < part_size; i++)
+		free(MATRIX_A[i]);
+	free(MATRIX_A);
+	free(VECTOR_B);
+	free(VECTOR_X);
 	free(lengths);
+	free(displs);
 
 	MPI_Finalize();
 	return 0;

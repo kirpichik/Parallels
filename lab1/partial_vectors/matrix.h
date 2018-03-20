@@ -8,7 +8,7 @@
 /**
  * Fills the vector.
  */
-void fillVector(double[SIZE]);
+void fillVectorPart(double*, int, int);
 
 /**
  * Fills the matrix part.
@@ -18,12 +18,12 @@ void fillMatrixPart(double**, int, int);
 /**
  * Fills the vector with zero.
  */
-void fillZero(double[SIZE]);
+void fillZeroVectorPart(double*, int, int);
 
 /**
  * Prints the vector.
  */
-void printVector(double*);
+void printVector(double*, int);
 
 /**
  * Prints the matrix.
@@ -33,7 +33,7 @@ void printMatrix(double**, int);
 /**
  * Normalize vector
  */
-double normalize(double vector[SIZE]);
+double normalize(double*, int);
 
 /**
  * Checks epsilon offset for finish calculating.
@@ -43,15 +43,15 @@ bool isFinish(double[SIZE], double);
 /**
  * Substraction of two vectors.
  */
-void subVectors(double[SIZE], double[SIZE], double[SIZE]);
+void subVectors(double*, double*, double*, int);
 
 /**
  * Mult of scalar and vector.
  */
-void multScalar(double, double[SIZE], double[SIZE]);
+void multScalar(double, double*, double*, int);
 
 /**
  * Mult of matrix part and vector
  */
-void multMatrixPart(double**, int, double[SIZE], double*);
+void multMatrixPart(double**, double*, double*, int*, int*, int, int);
 
