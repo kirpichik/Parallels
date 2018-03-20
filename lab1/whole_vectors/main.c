@@ -50,13 +50,6 @@ int main(int argc, char* argv[]) {
 	fillVector(VECTOR_B);
 	vectorBNorm = normalize(VECTOR_B);
 
-	//printMatrix(MATRIX_A, lengths[rank]);
-	if (!rank) {
-		printf("=====VECTOR B:=====\n");
-		printVector(VECTOR_B);
-		printf("Counting vector x:\n");
-	}
-
 	while (1) {
 		// Count A * x_n
 		multMatrixPart(MATRIX_A, lengths[rank], VECTOR_X, multResult);
