@@ -1,0 +1,21 @@
+==== Processes: 1 ====
+real 34.94
+user 34.59
+sys 0.15
+==== Processes: 2 ====
+real 19.63
+user 38.62
+sys 0.23
+==== Processes: 4 ====
+real 24.95
+user 96.62
+sys 0.81
+==== Processes: 8 ====
+real 47.41
+user 112.78
+sys 73.66
+==== Processes: 16 ====
+real 109.33
+user 228.27
+sys 200.92
+
