@@ -16,11 +16,6 @@ void fillVector(double[SIZE]);
 void fillMatrix(double[SIZE][SIZE]);
 
 /**
- * Fills the vector with zero.
- */
-void fillZero(double[SIZE]);
-
-/**
  * Prints the vector.
  */
 void printVector(double*);
