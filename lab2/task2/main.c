@@ -1,4 +1,5 @@
 
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,7 @@
 void solve();
 
 int main(int argc, char* argv[]) {
+	#pragma omp parallel
 	solve();
 	return 0;
 }
@@ -18,6 +20,9 @@ void solve() {
 	double VECTOR_X[SIZE]; // Vector x
 	double RESULT[SIZE]; // Inter-result
 	double vectorBNorm; // Normalized vector b
+
+	omp_set_dynamic(0);
+	omp_set_num_threads(1);
 
 	// Fill start data
 	fillVector(VECTOR_X);
@@ -43,6 +48,7 @@ void solve() {
 		subVectors(VECTOR_X, RESULT, VECTOR_X);
 	}
 
+	//#pragma omp single
 	printVector(VECTOR_X);
 }
 
