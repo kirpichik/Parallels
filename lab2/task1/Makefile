@@ -1,6 +1,6 @@
 
 CC=gcc
->>>>>>> ad1e86cb4208199802980904bfb479f28e2cfa82
+
 CFLAGS=-c -Wall -std=c99
 LDFLAGS=-lm -fopenmp
 SOURCES=main.c matrix.c
