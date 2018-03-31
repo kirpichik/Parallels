@@ -6,3 +6,5 @@ http://ssd.sscc.ru/ru/chair/nsu/parallel-programming
 
 ## Завершенные:
 
+- 1
+
