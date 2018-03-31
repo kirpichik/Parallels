@@ -7,13 +7,11 @@
 #include "matrix.h"
 
 void fillVector(double vector[SIZE]) {
-	#pragma omp for
 	for (size_t i = 0; i < SIZE; i++)
 		vector[i] = i + 1;
 }
 
 void fillMatrix(double matrix[SIZE][SIZE]) {
-	#pragma omp for
 	for (size_t i = 0; i < SIZE; i++) {
 		for (size_t j = 0; j < SIZE; j++)
 			matrix[i][j] = i == j ? 2 : 1;
@@ -32,10 +30,14 @@ void printMatrix(double matrix[SIZE][SIZE]) {
 }
 
 double normalize(double vector[SIZE]) {
+	size_t i;
 	double sum = 0;
-	#pragma omp for
-	for (size_t i = 0; i < SIZE; i++)
-		sum += vector[i] * vector[i];
+
+	#pragma omp for private(i)
+	for (i = 0; i < SIZE; i++) {
+		#pragma omp atomic
+		sum += pow(vector[i], 2);
+	}
 	return sqrt(sum);
 }
 
