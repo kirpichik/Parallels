@@ -63,17 +63,20 @@ int main(int argc, char* argv[]) {
 		// Count A * x_n
 		//printf("pr: %d multing matrix part...\n", rank);
 		multMatrixPart(MATRIX_A, VECTOR_X, partResult, lengths, displs, size, rank);
-		MPI_Allgatherv(partResult, part_size, MPI_DOUBLE, collectedResult, 
-				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
-		//printf("pr: %d finish mult\n", rank);
 
 		// Count A * x_n - b
 		subVectors(partResult, VECTOR_B, partResult, extendedPart);
 
 		// Check finish
-		MPI_Allgatherv(partResult, part_size, MPI_DOUBLE, collectedResult, 
-				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
-		if (isFinish(collectedResult, vectorBNorm))
+		/*MPI_Allgatherv(partResult, part_size, MPI_DOUBLE, collectedResult, 
+				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);*/
+		double sum = 0;
+		for (size_t i = 0; i < part_size; i++)
+			sum += partResult[i];
+		double sumResult;
+
+		MPI_Allreduce(&sum, &sumResult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		if (isFinish(sumResult, vectorBNorm))
 			break;
 
 		// Count theta * (A * x_n - b)

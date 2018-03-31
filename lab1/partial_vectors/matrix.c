@@ -8,7 +8,7 @@
 
 void fillVectorPart(double* vector, int begin, int count) {
 	for (size_t i = 0; i < count; i++)
-		vector[i] = i + 1 + begin;
+		vector[i] = SIZE + 1;
 }
 
 void fillZeroVectorPart(double* vector, int begin, int count) {
@@ -40,8 +40,8 @@ double normalize(double* vector, int count) {
 	return sqrt(sum);
 }
 
-bool isFinish(double vectorA[SIZE], double vectorBNorm) {
-	return normalize(vectorA, SIZE) / vectorBNorm < EPSILON;
+bool isFinish(double sum, double vectorBNorm) {
+	return sqrt(sum) / vectorBNorm < EPSILON;
 }
 
 void subVectors(double* vectorA, double* vectorB, double* result, int size) {
@@ -59,7 +59,6 @@ void multMatrixPart(double** matrix, double* vector, double* result, int* length
 	int begin = displs[rank];
 	int length = rows;
 	int send_len = (int) ceil((double) SIZE / pr_size);
-	MPI_Status mpi_status;
 
 	for (int shift = 0; shift < pr_size; shift++) {
 		for (int i = 0; i < rows; i++)
@@ -72,10 +71,9 @@ void multMatrixPart(double** matrix, double* vector, double* result, int* length
 		length = lengths[pos] % SIZE;
 		int send_id = (rank + 1) % pr_size;
 		int recv_id = (rank + pr_size - 1) % pr_size;
-		if (send_id != recv_id) {
-			MPI_Send(vector, send_len, MPI_DOUBLE, send_id, 777, MPI_COMM_WORLD);
-			MPI_Recv(vector, send_len, MPI_DOUBLE, recv_id, 777, MPI_COMM_WORLD, &mpi_status);
-		}
+
+		MPI_Sendrecv_replace(vector, send_len, MPI_DOUBLE, send_id, 777, 
+				recv_id, 777, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 }
 

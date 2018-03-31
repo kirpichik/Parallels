@@ -1,7 +1,7 @@
 
 #include <stdbool.h>
 
-#define SIZE 10
+#define SIZE 1960
 #define THETA 0.001
 #define EPSILON 0.000001
 
@@ -38,7 +38,7 @@ double normalize(double*, int);
 /**
  * Checks epsilon offset for finish calculating.
  */
-bool isFinish(double[SIZE], double);
+bool isFinish(double, double);
 
 /**
  * Substraction of two vectors.

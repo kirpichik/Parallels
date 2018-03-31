@@ -1,4 +1,5 @@
 
+#include <omp.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -8,11 +9,6 @@
 void fillVector(double vector[SIZE]) {
 	for (size_t i = 0; i < SIZE; i++)
 		vector[i] = i + 1;
-}
-
-void fillZero(double vector[SIZE]) {
-	for (size_t i = 0; i < SIZE; i++)
-		vector[i] = 0;
 }
 
 void fillMatrix(double matrix[SIZE][SIZE]) {
@@ -33,9 +29,14 @@ void printMatrix(double matrix[SIZE][SIZE]) {
 }
 
 double normalize(double vector[SIZE]) {
+	size_t i;
 	double sum = 0;
-	for (size_t i = 0; i < SIZE; i++)
-		sum += vector[i] * vector[i];
+
+	#pragma omp for private(i)
+	for (i = 0; i < SIZE; i++) {
+		#pragma omp atomic
+		sum += pow(vector[i], 2);
+	}
 	return sqrt(sum);
 }
 
@@ -44,11 +45,13 @@ bool isFinish(double vectorA[SIZE], double vectorBNorm) {
 }
 
 void subVectors(double vectorA[SIZE], double vectorB[SIZE], double result[SIZE]) {
+	#pragma omp for
 	for (size_t i = 0; i < SIZE; i++)
 		result[i] = vectorA[i] - vectorB[i];
 }
 
 void multScalar(double scalar, double vector[SIZE], double result[SIZE]) {
+	#pragma omp for
 	for (size_t i = 0; i < SIZE; i++)
 		result[i] = scalar * vector[i];
 }
@@ -56,8 +59,10 @@ void multScalar(double scalar, double vector[SIZE], double result[SIZE]) {
 void multMatrix(double matrix[SIZE][SIZE], double vector[SIZE], double result[SIZE]) {
 	memset(result, 0, SIZE * sizeof(double));
 
-	for (size_t i = 0; i < SIZE; i++)
+	#pragma omp for
+	for (size_t i = 0; i < SIZE; i++) {
 		for (size_t j = 0; j < SIZE; j++)
 			result[i] += matrix[i][j] * vector[j];
+	}
 }
 
