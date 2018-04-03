@@ -4,27 +4,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
 #include "matrix.h"
 
-void solve();
-
 int main(int argc, char* argv[]) {
-	#pragma omp parallel
-	solve();
-	return 0;
-}
-
-void solve() {
 	double MATRIX_A[SIZE][SIZE]; // Matrix A
 	double VECTOR_B[SIZE]; // Vector b
 	double VECTOR_X[SIZE]; // Vector x
 	double RESULT[SIZE]; // Inter-result
-	double vectorBNorm; // Normalized vector b
-	double sumNorm;
+	double vectorBNorm = 0; // Normalized vector b
+	double sumNorm = 0;
+	bool flag = true;
 
-	omp_set_dynamic(0);
-	omp_set_num_threads(4);
+	omp_set_num_threads(16);
 
 	// Fill start data
 	fillVector(VECTOR_X);
@@ -32,49 +25,41 @@ void solve() {
 	fillVector(VECTOR_B);
 
 	vectorBNorm = 0;
-	#pragma omp parallel shared(vectorBNorm, sumNorm)
+	#pragma omp parallel
 	{
-		#pragma omp for
-		for (size_t i = 0; i < SIZE; i++) {
-			#pragma omp atomic
+		#pragma omp for reduction(+:vectorBNorm)
+		for (size_t i = 0; i < SIZE; i++)
 			vectorBNorm += VECTOR_B[i] * VECTOR_B[i];
-		}
+
 		#pragma omp single
 		vectorBNorm = sqrt(vectorBNorm);
-		#pragma omp barrier
-		//printf("%f\n", vectorBNorm);
 		
-		while (1) {
-			// Count A * x_n
-			multMatrix(MATRIX_A, VECTOR_X, RESULT);
-
-			// Count A * x_n - b
-			subVectors(RESULT, VECTOR_B, RESULT);
-
-			// Check finish
-			#pragma omp single
-			sumNorm = 0;
-			#pragma omp barrier
-			#pragma omp for
+		while (flag) {
+			#pragma omp for reduction(+:sumNorm)
 			for (size_t i = 0; i < SIZE; i++) {
-				#pragma omp atomic
-				sumNorm += RESULT[i] * RESULT[i];
+				double valueX = 0;
+				// A * x
+				for (size_t j = 0; j < SIZE; j++)
+					valueX += MATRIX_A[i][j] * VECTOR_X[j];
+
+				// A * x - b
+				valueX -= VECTOR_B[i];
+				RESULT[i] = VECTOR_X[i] - valueX * THETA;
+				sumNorm += pow(valueX, 2);
 			}
+
 			#pragma omp single
-			sumNorm = sqrt(sumNorm);
-			#pragma omp barrier
-			printf("%f\n", sumNorm);
-			if (sumNorm / vectorBNorm < EPSILON)
-				break;
-
-			// Count theta * (A * x_n - b)
-			multScalar(THETA, RESULT, RESULT);
-
-			// Count next x_{n + 1}
-			subVectors(VECTOR_X, RESULT, VECTOR_X);
+			{
+				memcpy(VECTOR_X, RESULT, sizeof(double) * SIZE);
+				sumNorm = sqrt(sumNorm);
+				flag = sumNorm / vectorBNorm >= EPSILON;
+				sumNorm = 0;
+			}
 		}
 	}
 
 	printVector(VECTOR_X);
+
+	return 0;
 }
 
