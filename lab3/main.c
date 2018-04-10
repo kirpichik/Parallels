@@ -128,19 +128,20 @@ void build_mpi_types(size_t size_N, size_t size_K, size_t strip_A, size_t strip_
   MPI_Datatype types[2];
   int blen[2] = { 1, 1 };
   long size, disp[2];
+  MPI_Aint lb;
 
   // Создаем тип для передачи кусков B
   MPI_Type_vector(size_N, strip_B, size_K, MPI_DOUBLE, &types[0]);
-  MPI_Type_extent(MPI_DOUBLE, &size);
+  MPI_Type_get_extent(MPI_DOUBLE, &lb, &size);
   disp[0] = 0;
   disp[1] = size * strip_B;
   types[1] = MPI_UB;
-  MPI_Type_struct(2, blen, disp, types, typeb);
+  MPI_Type_create_struct(2, blen, disp, types, typeb);
   MPI_Type_commit(typeb);
 
   // Создаем тип для передачи ячеек C
   MPI_Type_vector(strip_A, strip_B, size_K, MPI_DOUBLE, &types[0]);
-  MPI_Type_struct(2, blen, disp, types, typec);
+  MPI_Type_create_struct(2, blen, disp, types, typec);
   MPI_Type_commit(typec);
 
   MPI_Type_free(&types[0]);
