@@ -17,7 +17,12 @@ int main(int argc, char* argv[]) {
 	double sumNorm = 0;
 	bool flag = true;
 
-	omp_set_num_threads(16);
+	if (argc < 2) {
+		printf("Need argument: <threads count>\n");
+		return 0;
+	}
+
+	omp_set_num_threads(atoi(argv[1]));
 
 	// Fill start data
 	fillVector(VECTOR_X);
