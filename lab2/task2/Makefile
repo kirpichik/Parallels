@@ -1,5 +1,5 @@
 
-CC=gcc-7
+CC=gcc
 CFLAGS=-c -Wall -std=c99
 LDFLAGS=-lm -fopenmp
 SOURCES=main.c matrix.c
