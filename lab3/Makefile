@@ -1,6 +1,6 @@
 
 CC=mpicc
-CFLAGS=-c -Wall -std=c99
+CFLAGS=-c -Wall -std=c99 -Wno-deprecated-declarations
 LDFLAGS=-lm
 SOURCES=main.c
 HEADERS=
