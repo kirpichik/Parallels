@@ -291,7 +291,7 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
   mult_matrix_parts(part_A, part_B, part_C, strip_A, strip_B, size_N);
 
   // Собираем все куски в начале
-  MPI_Gatherv(part_C, strip_A * strip_B, MPI_DOUBLE, matrix_C, sub_C_sizes, sub_C_displs, typec, 0, comm_2D);
+  MPI_Gather(part_C, strip_A * strip_B, MPI_DOUBLE, matrix_C, grid_width * grid_height - 1,/*sub_C_sizes, sub_C_displs,*/ typec, 0, comm_2D);
 
   free(part_A);
   free(part_B);
