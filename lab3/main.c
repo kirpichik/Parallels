@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
   if (P0 * P1 != size) {
-    printf("Required processes count: %d", P0 * P1);
+    printf("Required processes count: %d\n", P0 * P1);
     MPI_Finalize();
     return 0;
   }
@@ -244,10 +244,6 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
   // Копируем старый коммуникатор
   MPI_Comm_dup(comm, &comm_copy);
 
-  // Раздаем всем параметры матриц и размеры сети (от имени начального)
-  MPI_Bcast(sizes, 3, MPI_INT, 0, comm_copy);
-  MPI_Bcast(grid_sizes, 2, MPI_INT, 0, comm_copy);
-
   // Создаем карту сети
   MPI_Cart_create(comm_copy, 2, grid_sizes, periods, 0, &comm_2D);
 
@@ -295,7 +291,7 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
   mult_matrix_parts(part_A, part_B, part_C, strip_A, strip_B, size_N);
 
   // Собираем все куски в начале
-  MPI_Gatherv(part_C, strip_A * strip_B, MPI_DOUBLE, matrix_C, sub_C_sizes, sub_C_displs, typec, 0, comm_2D);
+  MPI_Gather(part_C, strip_A * strip_B, MPI_DOUBLE, matrix_C, grid_width * grid_height - 1,/*sub_C_sizes, sub_C_displs,*/ typec, 0, comm_2D);
 
   free(part_A);
   free(part_B);
