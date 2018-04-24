@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#define BORDER_UP 1
+#define BORDER_DOWN 2
+
 typedef struct point {
   double x;
   double y;
@@ -12,6 +15,8 @@ typedef struct point {
 typedef struct calc_data {
   double* current_area;
   double* next_area;
+  char borders;
+  size_t rank;
   point_t area_size;
   point_t center;
   point_t distance;
@@ -19,7 +24,6 @@ typedef struct calc_data {
   point_t height;
   double paramA;
   double epsilon;
-  double initial_approx;
 } calc_data_t;
 
 /**
@@ -27,10 +31,13 @@ typedef struct calc_data {
  *
  * @param data Структура для заполнения.
  * @param proc_count Общее кол-во процессов.
+ * @param rank Ранг процесса.
  *
  * @return true, если заполнение на данном кол-ве процессов возможно.
  */
-bool fill_initial(calc_data_t* data, size_t proc_count) {
+bool fill_initial(calc_data_t* data, size_t proc_count, size_t rank) {
+  data->rank = rank;
+
   // x0, y0, z0
   data->center.x = -1;
   data->center.y = -1;
@@ -42,9 +49,9 @@ bool fill_initial(calc_data_t* data, size_t proc_count) {
   data->distance.z = 2;
 
   // Nx, Ny, Nz
-  data->disc_grid.x = 20;
-  data->disc_grid.y = 20;
-  data->disc_grid.z = 20;
+  data->disc_grid.x = 16;
+  data->disc_grid.y = 16;
+  data->disc_grid.z = 16;
 
   // h_x, h_y, h_z
   data->height.x = data->distance.x / (data->disc_grid.x - 1);
@@ -57,25 +64,70 @@ bool fill_initial(calc_data_t* data, size_t proc_count) {
   // \phi^0_{i, j, k}
   data->initial_approx = 0;
 
-  // TODO - размеры локальной области
-  data->area_size.x = 0;
-  data->area_size.y = 0;
-  data->area_size.z = 0;
+  if (data->disc_grid.y % proc_count != 0)
+    return false;
 
-  // TODO - выделение памяти и заполнение граничных областей
-  data->current_area = (double*) calloc(data->area_size.x *
-                                        data->area_size.y *
-                                        data->area_size.z *
-                                        sizeof(double));
-  data->next_area = (double*) malloc(data->area_size.x *
-                                     data->area_size.y *
-                                     data->area_size.z *
-                                     sizeof(double));
+  // Размеры подобласти
+  data->area_size.x = data->disc_grid.x;
+  data->area_size.y = data->disc_grid.y / proc_count;
+  data->area_size.z = data->disc_grid.z;
+
+  // Наличие совмещенных границ
+  data->borders = (!rank ? 0 : BORDER_UP)
+                | (rank + 1 == proc_count ? 0 : BORDER_DOWN);
+
+  // Создаем массивы для хранимых подобластей
+  double size = data->area_size.x + 2*
+                data->area_size.y + 2 *
+                data->area_size.z + 2*
+                sizeof(double);
+  data->current_area = (double*) calloc(size);
+  data->next_area = (double*) malloc(size);
+
+  for (size_t i = 0; i < data->area_size.x; i++)
+    for (size_t j = 0; j < data->area_size.y; j++) {
+      calculate_phi(data, i, j, 0);
+      calculate_phi(data, i, j, area_size.z);
+    }
+
+  for (size_t i = 0; i < data->area.size.z; i++)
+    for (size_t j = 0; j < data->area_size.y; j++) {
+      calculate_phi(data, 0, j, i);
+      calculate_phi(data, area_size.x, j, i);
+    }
+
+  return true;
+}
+
+/**
+ * Просто вставляет знач
+ */
+void just_insert(double* arr, point_t size, double value, size_t pos[3]) {
+  size_t height = (size_t) data->area_size.y;
+  size_t depth = (size_t) data->area_size.z;
+  data[i * height * depth + j * depth + k] = value;
+}
+
+/**
+ * Вычисляет значение функции фи в заданной точке.
+ *
+ * @param data Набор данных для вычисления.
+ * @param i Позиция по X.
+ * @param j Позиция по Y.
+ * @param k Позиция по Z.
+ *
+ * @return Значение функции фи в точке.
+ */
+double calculate_phi(calc_data_t* data, int i, int j, int k) {
+  j += (int) data->rank * data->area_size.y;
+  double x = data->center.x + i * data->height.x;
+  double y = data->center.y + j * data->height.y;
+  double z = data->center.z + k * data->height.z;
+  return pow(x, 2) + pow(y, 2) + pow(z, 2);
 }
 
 /**
  * Вычисляет значение функции ро в заданной точке.
- * Функция фи, от которой зависит ро, захардкожена.
  *
  * @param data Набор данных для вычисления.
  * @param i Позиция по X.
@@ -84,40 +136,40 @@ bool fill_initial(calc_data_t* data, size_t proc_count) {
  *
  * @return Значение функции ро в точке.
  */
-double calculate_ro(calc_data_t* data, size_t i, size_t j, size_t k) {
-  double x = data->center.x + i * data->height.x;
-  double y = data->center.y + j * data->height.y;
-  double z = data->center.z + k * data->height.z;
-  double phi = pow(x, 2) + pow(y, 2) + pow(z, 2);
-  return 6 - a * phi;
+double calculate_ro(calc_data_t* data, int i, int j, int k) {
+  return 6 - a * calculate_phi(data, i, j, k);
 }
 
 /**
  * Выбирает значение функции из текущей области.
  *
  * @param data Таблица для выборки значения.
+ * @param borders Наличие границ в области.
  * @param i Позиция по X.
  * @param j Позиция по Y.
  * @param k Позиция по Z.
  *
  * @return Значение по данной точке.
  */
-double select(double* data, size_t i, size_t j, size_t k) {
+double select(calc_data_t* data, int i, int j, int k) {
+  j += (borders & BORDER_UP) ? 1 : 0;
   size_t height = (size_t) data->area_size.y;
   size_t depth = (size_t) data->area_size.z;
   return data[i * height * depth + j * depth + k];
 }
 
 /**
- * Вставляет новое значение функции в область следующего шага.
+ * Вставляет новое значение функции в область.
  *
  * @param data Таблица для вставки значения.
+ * @param borders Наличие границ в области.
  * @param value Вставляемое значение.
  * @param i Позиция по X.
  * @param j Позиция по Y.
  * @param k Позиция по Z.
  */
-void insert(double* data, double value, size_t i, size_t j, size_t k) {
+void insert(double* data, char borders, double value, int i, int j, int k) {
+  j += (borders & BORDER_UP) ? 1 : 0;
   size_t height = (size_t) data->area_size.y;
   size_t depth = (size_t) data->area_size.z;
   data[i * height * depth + j * depth + k] = value;
@@ -132,23 +184,23 @@ void insert(double* data, double value, size_t i, size_t j, size_t k) {
  * @param j Позиция по Y.
  * @param k Позиция по Z.
  */
-void calculate_next_phi_at(calc_data_t* data, size_t i, size_t j, size_t k) {
+void calculate_next_phi_at(calc_data_t* data, int i, int j, int k) {
   double result;
   double powHx = pow(data->height.x, 2);
   double powHy = pow(data->height.y, 2);
   double powHz = pow(data->height.z, 2);
 
-  double first =  select(data->current_area, i + 1, j, k) -
-                  select(data->current_area, i, j, k) * 2 +
-                  select(data->current_area, i - 1, j, k);
+  double first =  select(data->current_area, data->borders, i + 1, j, k) -
+                  select(data->current_area, data->borders, i, j, k) * 2 +
+                  select(data->current_area, data->borders, i - 1, j, k);
 
-  double second = select(data->current_area, i, j + 1, k) -
-                  select(data->current_area, i, j, k) * 2 +
-                  select(data->current_area, i, j - 1, k);
+  double second = select(data->current_area, data->borders, i, j + 1, k) -
+                  select(data->current_area, data->borders, i, j, k) * 2 +
+                  select(data->current_area, data->borders, i, j - 1, k);
 
-  double third =  select(data->current_area, i, j, k + 1) -
-                  select(data->current_area, i, j, k) * 2 +
-                  select(data->current_area, i, j, k - 1);
+  double third =  select(data->current_area, data->borders, i, j, k + 1) -
+                  select(data->current_area, data->borders, i, j, k) * 2 +
+                  select(data->current_area, data->borders, i, j, k - 1);
 
   double divider = 2 / powHx + 2 / powHy + 2 / powHz + data->paramA;
   double ro = calculate_ro(data, i, j, k);
@@ -158,7 +210,7 @@ void calculate_next_phi_at(calc_data_t* data, size_t i, size_t j, size_t k) {
   third /= powHz;
 
   result = (first + second + third - ro) / divider;
-  insert(data->next_area, result, i, j, k);
+  insert(data->next_area, data->borders, result, i, j, k);
 }
 
 /**
@@ -222,8 +274,17 @@ void prepare_next_step(calc_data_t* data) {
 }
 
 int main(int argc, char* argv[]) {
+  int size, rank;
   calc_data_t data;
-  fill_initial(&data, 0); // TODO - кол-во процессов
+
+  MPI_Init(&argc, &argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  if (!fill_initial(&data, size, rank)) {
+    MPI_Finalize();
+    return 0;
+  }
 
   bool next = true;
 
