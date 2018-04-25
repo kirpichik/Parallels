@@ -1,10 +1,10 @@
 
-CC=mpicc
-CFLAGS=-c -Wall -std=c99
-LDFLAGS=-lm
-SOURCES=main.c
+CC=mpic++
+CFLAGS=-c -Wall -std=c++11
+LDFLAGS=
+SOURCES=main.cpp solve.cpp
 HEADERS=
-OBJECTS=$(SOURCES:.c=.o)
+OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=lab
 
 all: $(SOURCES) $(EXECUTABLE)
@@ -12,7 +12,7 @@ all: $(SOURCES) $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS) $(HEADERS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
-.c.o:
+%.o: %.cpp Makefile
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:

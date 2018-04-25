@@ -61,9 +61,6 @@ bool fill_initial(calc_data_t* data, size_t proc_count, size_t rank) {
   data->paramA = pow(10, 5);
   data->epsilon = pow(10, -8);
 
-  // \phi^0_{i, j, k}
-  data->initial_approx = 0;
-
   if (data->disc_grid.y % proc_count != 0)
     return false;
 
