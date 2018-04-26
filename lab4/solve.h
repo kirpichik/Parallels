@@ -3,6 +3,7 @@
 #define _SOLVE_H
 
 #include <vector>
+#include <mpi.h>
 
 template <typename T>
 struct Point {
@@ -38,6 +39,9 @@ struct SolveData {
   bool borderUpper;
   bool borderLower;
   size_t rank;
+  size_t proc_count;
+  MPI_Request sendRequests[2];
+  MPI_Request recvRequests[2];
 
   SolveData(size_t proc_count, size_t rank);
 

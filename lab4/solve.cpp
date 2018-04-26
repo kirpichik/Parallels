@@ -20,9 +20,10 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   epsilon = 10e-8;
   initial_approx = 0;
   this->rank = rank;
+  this->proc_count = proc_count;
 
   if (grid.z % proc_count != 0)
-    throw "Invalid processes count.";
+    throw "Invalid process count.";
 
   Point<size_t> size(grid.x, grid.y, grid.z / proc_count);
   currentArea = new Area(size, initial_approx);
@@ -148,8 +149,8 @@ double SolveData::calculateNextPhiAt(Point<int> pos) {
 
 void SolveData::calculateConcurrentBorders() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < size.x; i++)
-    for (int j = 0; j < size.y; j++) {
+  for (int i = 0; i < (int) size.x; i++)
+    for (int j = 0; j < (int) size.y; j++) {
       Point<int> pos(i, j, rank * size.z);
       nextArea->set(calculateNextPhiAt(pos), pos);
       nextArea->set(calculateNextPhiAt(pos), pos.add(0, 0, size.z));
@@ -157,24 +158,57 @@ void SolveData::calculateConcurrentBorders() {
 }
 
 void SolveData::sendBorders() {
-
+  // TODO - Буферы для отправки и приема
+  const Point<size_t>& size = currentArea->size;
+  if (!borderLower) {
+    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
+    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &recvRequests[0]);
+  }
+  if (!borderUpper) {
+    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
+    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
+  }
 }
 
 void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < size.x; i++)
-    for (int j = 0; j < size.y; j++)
-      for (int k = rank * size.z; k < (rank + 1) * size.z; k++) {
+  for (int i = 0; i < (int) size.x; i++)
+    for (int j = 0; j < (int) size.y; j++)
+      for (int k = (int) (rank * size.z); k < (int) ((rank + 1) * size.z); k++) {
         Point<int> pos(i, j, k);
         nextArea->set(calculateNextPhiAt(pos), pos);
       }
 }
 
 bool SolveData::needNext() {
-  return false;
+  double max = 0;
+  double value;
+  double allMax[proc_count];
+  const Point<size_t>& size = currentArea->size;
+
+  for (size_t i = 0; i < size.x; i++)
+    for (size_t j = 0; j < size.y; j++)
+      for (size_t k = 0; k < size.z; j++) {
+	Point<size_t> pos(i, j, k);
+        value = abs(currentArea->get(pos) - nextArea->get(pos));
+	if (max > value)
+	  max = value;
+      }
+
+  MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+  for (size_t i = 0; i < proc_count; i++)
+    if (max > allMax[i])
+      max = allMax[i];
+
+  return max < epsilon;
 }
 
 void SolveData::prepareNextStep() {
-
+  // TODO - Запись в области полученых границ
+  if (!borderLower)
+    MPI_Wait(&recvRequests[0], MPI_STATUS_IGNORE);
+  if (!borderUpper)
+    MPI_Wait(&recvRequests[1], MPI_STATUS_IGNORE);
+  currentArea->swapAreas(*nextArea);
 }
 
