@@ -1,6 +1,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <stdexcept>
 
 #include "solve.h"
 
@@ -23,7 +24,7 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   this->proc_count = proc_count;
 
   if (grid.z % proc_count != 0)
-    throw "Invalid process count.";
+    throw std::runtime_error("Invalid process count.");
 
   Point<size_t> size(grid.x, grid.y, grid.z / proc_count);
   currentArea = new Area(size, initial_approx);
@@ -108,18 +109,18 @@ void SolveData::initBorders() {
     }
 }
 
-double SolveData::calculatePhiOnBorder(Point<int> pos) {
+double SolveData::calculatePhiOnBorder(const Point<int> pos) {
   double x = center.x + pos.x * height.x;
   double y = center.y + pos.y * height.y;
   double z = center.z + pos.z * height.z;
   return x * x + y * y + z * z;
 }
 
-double SolveData::calculateRo(Point<int> pos) {
+double SolveData::calculateRo(const Point<int> pos) {
   return 6 - paramA * currentArea->get(pos);
 }
 
-double SolveData::calculateNextPhiAt(Point<int> pos) {
+double SolveData::calculateNextPhiAt(const Point<int> pos) {
   double powHx = pow(height.x, 2);
   double powHy = pow(height.y, 2);
   double powHz = pow(height.z, 2);

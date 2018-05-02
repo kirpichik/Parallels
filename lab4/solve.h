@@ -3,7 +3,6 @@
 #define _SOLVE_H
 
 #include <mpi.h>
-#include <vector>
 
 template <typename T>
 struct Point {
@@ -19,59 +18,16 @@ struct Point {
     return Point<C>((C)x, (C)y, (C)z);
   }
 
-  Point<T> add(const T& x, const T& y, const T& z) {
+  Point<T> add(const T& x, const T& y, const T& z) const {
     return Point(this->x + x, this->y + y, this->z + z);
   }
-};
-
-class Area;
-
-struct SolveData {
-  Point<double> center;
-  Point<double> distance;
-  Point<double> height;
-  Point<size_t> grid;
-  double paramA;
-  double epsilon;
-  double initial_approx;
-  Area* currentArea;
-  Area* nextArea;
-  bool borderUpper;
-  bool borderLower;
-  size_t rank;
-  size_t proc_count;
-  MPI_Request sendRequests[2];
-  MPI_Request recvRequests[2];
-
-  SolveData(size_t proc_count, size_t rank);
-
-  void calculateConcurrentBorders();
-
-  void sendBorders();
-
-  void calculateCenter();
-
-  bool needNext();
-
-  void prepareNextStep();
-
-  ~SolveData();
-
- private:
-  void initBorders();
-
-  double calculatePhiOnBorder(Point<int> pos);
-
-  double calculateNextPhiAt(Point<int> pos);
-
-  double calculateRo(Point<int> pos);
 };
 
 /**
  * Подобласть
  */
-class Area {
- public:
+struct Area {
+
   const Point<size_t> size;
 
   /**
@@ -115,6 +71,77 @@ class Area {
 
  private:
   double* area;
+};
+
+struct SolveData {
+
+  SolveData(size_t proc_count, size_t rank);
+
+  /**
+   * Обсчитывает следующий шаг для граничащих подобластей,
+   * чтобы после передать их соседним процессам.
+   */
+  void calculateConcurrentBorders();
+
+  /**
+   * Отправляет граничащие области соседям.
+   */
+  void sendBorders();
+
+  /**
+   * Обсчитывает центральную область.
+   */
+  void calculateCenter();
+
+  /**
+   * Проверяет, нужно ли продолжать вычисления.
+   */
+  bool needNext();
+
+  /**
+   * Дожидается приема границ от соседей и подготавливает области
+   * для обсчета следующего шага.
+   */
+  void prepareNextStep();
+
+  ~SolveData();
+
+ private:
+  Point<double> center;
+  Point<double> distance;
+  Point<double> height;
+  Point<size_t> grid;
+  double paramA;
+  double epsilon;
+  double initial_approx;
+  Area* currentArea;
+  Area* nextArea;
+  bool borderUpper;
+  bool borderLower;
+  size_t rank;
+  size_t proc_count;
+  MPI_Request sendRequests[2];
+  MPI_Request recvRequests[2];
+
+  /**
+   * Инициализирует границы области начальными значениями.
+   */
+  void initBorders();
+
+  /**
+   * Вычисляет значение функции фи на границе области.
+   */
+  double calculatePhiOnBorder(const Point<int> pos);
+
+  /**
+   * Вычисляет значение функции фи методом приближения внутри области.
+   */
+  double calculateNextPhiAt(const Point<int> pos);
+
+  /**
+   * Вычисляет значение функции ро.
+   */
+  double calculateRo(const Point<int> pos);
 };
 
 #endif
