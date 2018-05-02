@@ -2,8 +2,8 @@
 #ifndef _SOLVE_H
 #define _SOLVE_H
 
-#include <vector>
 #include <mpi.h>
+#include <vector>
 
 template <typename T>
 struct Point {
@@ -15,8 +15,8 @@ struct Point {
   Point(const T& x, const T& y, const T& z) : x(x), y(y), z(z) {}
 
   template <typename C>
-  operator Point<C> () const {
-    return Point<C>((C) x, (C) y, (C) z);
+  operator Point<C>() const {
+    return Point<C>((C)x, (C)y, (C)z);
   }
 
   Point<T> add(const T& x, const T& y, const T& z) {

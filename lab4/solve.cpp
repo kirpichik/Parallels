@@ -1,6 +1,6 @@
 
-#include <cstring>
 #include <cmath>
+#include <cstring>
 
 #include "solve.h"
 
@@ -41,9 +41,7 @@ SolveData::~SolveData() {
 
 Area::Area(const Point<size_t> size, double initial_approx) : size(size) {
   size_t mem = (size.x + 2) * (size.y + 2) * (size.z + 2);
-  area = new double[mem];
-  // TODO - Инициализация в случае иного начального приближения
-  memset(area, 0, sizeof(double) * mem);
+  area = new double[mem]{initial_approx};
 }
 
 Area::~Area() {
@@ -105,7 +103,8 @@ void SolveData::initBorders() {
       if (borderUpper)
         currentArea->justSet(calculatePhiOnBorder(pos), pos);
       if (borderLower)
-        currentArea->justSet(calculatePhiOnBorder(pos.add(0, 0, distance.z)), pos);
+        currentArea->justSet(calculatePhiOnBorder(pos.add(0, 0, distance.z)),
+                             pos);
     }
 }
 
@@ -125,17 +124,17 @@ double SolveData::calculateNextPhiAt(Point<int> pos) {
   double powHy = pow(height.y, 2);
   double powHz = pow(height.z, 2);
 
-  double first  = currentArea->get(pos.add(1, 0, 0)) -
-                  currentArea->get(pos) * 2 +
-                  currentArea->get(pos.add(-1, 0, 0));
+  double first = currentArea->get(pos.add(1, 0, 0)) -
+                 currentArea->get(pos) * 2 +
+                 currentArea->get(pos.add(-1, 0, 0));
 
   double second = currentArea->get(pos.add(0, 1, 0)) -
                   currentArea->get(pos) * 2 +
                   currentArea->get(pos.add(0, -1, 0));
 
-  double third  = currentArea->get(pos.add(0, 0, 1)) -
-                  currentArea->get(pos) * 2 +
-                  currentArea->get(pos.add(0, 0, -1));
+  double third = currentArea->get(pos.add(0, 0, 1)) -
+                 currentArea->get(pos) * 2 +
+                 currentArea->get(pos.add(0, 0, -1));
 
   double divider = 2 / powHx + 2 / powHy + 2 / powHz + paramA;
   double ro = calculateRo(pos);
@@ -149,8 +148,8 @@ double SolveData::calculateNextPhiAt(Point<int> pos) {
 
 void SolveData::calculateConcurrentBorders() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < (int) size.x; i++)
-    for (int j = 0; j < (int) size.y; j++) {
+  for (int i = 0; i < (int)size.x; i++)
+    for (int j = 0; j < (int)size.y; j++) {
       Point<int> pos(i, j, rank * size.z);
       nextArea->set(calculateNextPhiAt(pos), pos);
       nextArea->set(calculateNextPhiAt(pos), pos.add(0, 0, size.z));
@@ -161,20 +160,24 @@ void SolveData::sendBorders() {
   // TODO - Буферы для отправки и приема
   const Point<size_t>& size = currentArea->size;
   if (!borderLower) {
-    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
-    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &recvRequests[0]);
+    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD,
+              &sendRequests[0]);
+    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD,
+              &recvRequests[0]);
   }
   if (!borderUpper) {
-    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
-    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
+    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD,
+              &sendRequests[1]);
+    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD,
+              &recvRequests[1]);
   }
 }
 
 void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < (int) size.x; i++)
-    for (int j = 0; j < (int) size.y; j++)
-      for (int k = (int) (rank * size.z); k < (int) ((rank + 1) * size.z); k++) {
+  for (int i = 0; i < (int)size.x; i++)
+    for (int j = 0; j < (int)size.y; j++)
+      for (int k = (int)(rank * size.z); k < (int)((rank + 1) * size.z); k++) {
         Point<int> pos(i, j, k);
         nextArea->set(calculateNextPhiAt(pos), pos);
       }
@@ -189,10 +192,10 @@ bool SolveData::needNext() {
   for (size_t i = 0; i < size.x; i++)
     for (size_t j = 0; j < size.y; j++)
       for (size_t k = 0; k < size.z; j++) {
-	Point<size_t> pos(i, j, k);
+        Point<size_t> pos(i, j, k);
         value = abs(currentArea->get(pos) - nextArea->get(pos));
-	if (max > value)
-	  max = value;
+        if (max > value)
+          max = value;
       }
 
   MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);

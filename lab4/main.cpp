@@ -23,7 +23,6 @@ int main(int argc, char* argv[]) {
     data.prepareNextStep();
   }
 
-
   MPI_Finalize();
   return 0;
 }

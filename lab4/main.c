@@ -1,7 +1,7 @@
 
 #include <math.h>
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #define BORDER_UP 1
 #define BORDER_DOWN 2
@@ -70,16 +70,14 @@ bool fill_initial(calc_data_t* data, size_t proc_count, size_t rank) {
   data->area_size.z = data->disc_grid.z;
 
   // Наличие совмещенных границ
-  data->borders = (!rank ? 0 : BORDER_UP)
-                | (rank + 1 == proc_count ? 0 : BORDER_DOWN);
+  data->borders =
+      (!rank ? 0 : BORDER_UP) | (rank + 1 == proc_count ? 0 : BORDER_DOWN);
 
   // Создаем массивы для хранимых подобластей
-  double size = data->area_size.x + 2*
-                data->area_size.y + 2 *
-                data->area_size.z + 2*
-                sizeof(double);
-  data->current_area = (double*) calloc(size);
-  data->next_area = (double*) malloc(size);
+  double size = data->area_size.x + 2 * data->area_size.y +
+                2 * data->area_size.z + 2 * sizeof(double);
+  data->current_area = (double*)calloc(size);
+  data->next_area = (double*)malloc(size);
 
   for (size_t i = 0; i < data->area_size.x; i++)
     for (size_t j = 0; j < data->area_size.y; j++) {
@@ -100,8 +98,8 @@ bool fill_initial(calc_data_t* data, size_t proc_count, size_t rank) {
  * Просто вставляет знач
  */
 void just_insert(double* arr, point_t size, double value, size_t pos[3]) {
-  size_t height = (size_t) data->area_size.y;
-  size_t depth = (size_t) data->area_size.z;
+  size_t height = (size_t)data->area_size.y;
+  size_t depth = (size_t)data->area_size.z;
   data[i * height * depth + j * depth + k] = value;
 }
 
@@ -116,7 +114,7 @@ void just_insert(double* arr, point_t size, double value, size_t pos[3]) {
  * @return Значение функции фи в точке.
  */
 double calculate_phi(calc_data_t* data, int i, int j, int k) {
-  j += (int) data->rank * data->area_size.y;
+  j += (int)data->rank * data->area_size.y;
   double x = data->center.x + i * data->height.x;
   double y = data->center.y + j * data->height.y;
   double z = data->center.z + k * data->height.z;
@@ -150,8 +148,8 @@ double calculate_ro(calc_data_t* data, int i, int j, int k) {
  */
 double select(calc_data_t* data, int i, int j, int k) {
   j += (borders & BORDER_UP) ? 1 : 0;
-  size_t height = (size_t) data->area_size.y;
-  size_t depth = (size_t) data->area_size.z;
+  size_t height = (size_t)data->area_size.y;
+  size_t depth = (size_t)data->area_size.z;
   return data[i * height * depth + j * depth + k];
 }
 
@@ -167,8 +165,8 @@ double select(calc_data_t* data, int i, int j, int k) {
  */
 void insert(double* data, char borders, double value, int i, int j, int k) {
   j += (borders & BORDER_UP) ? 1 : 0;
-  size_t height = (size_t) data->area_size.y;
-  size_t depth = (size_t) data->area_size.z;
+  size_t height = (size_t)data->area_size.y;
+  size_t depth = (size_t)data->area_size.z;
   data[i * height * depth + j * depth + k] = value;
 }
 
@@ -187,17 +185,17 @@ void calculate_next_phi_at(calc_data_t* data, int i, int j, int k) {
   double powHy = pow(data->height.y, 2);
   double powHz = pow(data->height.z, 2);
 
-  double first =  select(data->current_area, data->borders, i + 1, j, k) -
-                  select(data->current_area, data->borders, i, j, k) * 2 +
-                  select(data->current_area, data->borders, i - 1, j, k);
+  double first = select(data->current_area, data->borders, i + 1, j, k) -
+                 select(data->current_area, data->borders, i, j, k) * 2 +
+                 select(data->current_area, data->borders, i - 1, j, k);
 
   double second = select(data->current_area, data->borders, i, j + 1, k) -
                   select(data->current_area, data->borders, i, j, k) * 2 +
                   select(data->current_area, data->borders, i, j - 1, k);
 
-  double third =  select(data->current_area, data->borders, i, j, k + 1) -
-                  select(data->current_area, data->borders, i, j, k) * 2 +
-                  select(data->current_area, data->borders, i, j, k - 1);
+  double third = select(data->current_area, data->borders, i, j, k + 1) -
+                 select(data->current_area, data->borders, i, j, k) * 2 +
+                 select(data->current_area, data->borders, i, j, k - 1);
 
   double divider = 2 / powHx + 2 / powHy + 2 / powHz + data->paramA;
   double ro = calculate_ro(data, i, j, k);
@@ -240,35 +238,27 @@ bool check_finish(calc_data_t* data) {
  *
  * @param data Набор данных для вычислений.
  */
-void calculate_borders(calc_data_t* data) {
-
-}
+void calculate_borders(calc_data_t* data) {}
 
 /**
  * Обсчитывает центр области.
  *
  * @param data Набор данных для вычислений.
  */
-void calculate_center(calc_data_t* data) {
-
-}
+void calculate_center(calc_data_t* data) {}
 
 /**
  * Отправляет граничные области после их обсчета.
  *
  * @param data Данные для отправки.
  */
-void send_borders(calc_data_t* data) {
-
-}
+void send_borders(calc_data_t* data) {}
 
 /**
  * Принимает граничные области от других процессов и обновляет области
  * для сдедующего итерацеонного шага.
  */
-void prepare_next_step(calc_data_t* data) {
-
-}
+void prepare_next_step(calc_data_t* data) {}
 
 int main(int argc, char* argv[]) {
   int size, rank;
