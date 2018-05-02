@@ -1,9 +1,7 @@
 
 #include <mpi.h>
-#include <iostream>
-#include <string>
 
-#include "solve.h"
+#include "solve_data.h"
 
 int main(int argc, char* argv[]) {
   int size, rank;

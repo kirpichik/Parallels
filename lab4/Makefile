@@ -2,7 +2,7 @@
 CC=mpic++
 CFLAGS=-c -Wall -std=c++11
 LDFLAGS=
-SOURCES=main.cpp solve.cpp
+SOURCES=main.cpp solve_data.cpp area.cpp
 HEADERS=
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=lab

@@ -1,9 +1,9 @@
 
+#include <mpi.h>
 #include <cmath>
-#include <cstring>
 #include <stdexcept>
 
-#include "solve.h"
+#include "solve_data.h"
 
 SolveData::SolveData(size_t proc_count, size_t rank) {
   // x0, y0, z0
@@ -23,10 +23,10 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   this->rank = rank;
   this->proc_count = proc_count;
 
-  if (grid.z % proc_count != 0)
+  if (grid.x % proc_count != 0)
     throw std::runtime_error("Invalid process count.");
 
-  Point<size_t> size(grid.x, grid.y, grid.z / proc_count);
+  Point<size_t> size(grid.x / proc_count, grid.y, grid.z);
   currentArea = new Area(size, initial_approx);
   nextArea = new Area(size, initial_approx);
   borderUpper = !rank;
@@ -40,71 +40,37 @@ SolveData::~SolveData() {
   delete nextArea;
 }
 
-Area::Area(const Point<size_t> size, double initial_approx) : size(size) {
-  size_t mem = (size.x + 2) * (size.y + 2) * (size.z + 2);
-  area = new double[mem]{initial_approx};
-}
-
-Area::~Area() {
-  delete[] area;
-}
-
-double Area::get(Point<int> pos) const {
-  pos.x++;
-  pos.y++;
-  pos.z++;
-  return area[pos.x * size.y * size.z + pos.y * size.z + pos.z];
-}
-
-void Area::set(double value, Point<size_t> pos) {
-  pos.x++;
-  pos.y++;
-  pos.z++;
-  justSet(value, pos);
-}
-
-void Area::justSet(double value, Point<size_t> pos) {
-  area[pos.x * size.y * size.z + pos.y * size.z + pos.z] = value;
-}
-
-void Area::swapAreas(Area& area) {
-  double* arr = this->area;
-  this->area = area.area;
-  area.area = arr;
-}
-
 void SolveData::initBorders() {
   const Point<size_t>& size = currentArea->size;
 
-  // Противоположные плоскости x->y
-  for (size_t i = 0; i < size.x + 2; i++)
-    for (size_t j = rank * size.z; j < (rank + 1) * size.z; j++) {
-      Point<size_t> pos(i, 0, j);
+  // Противоположные плоскости y->x
+  for (size_t i = 0; i < size.y + 2; i++)
+    for (size_t j = rank * size.x; j < (rank + 1) * size.x; j++) {
+      Point<size_t> pos(j, i, 0);
+      currentArea->justSet(calculatePhiOnBorder(pos), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(0, 0, size.z)), pos);
+    }
+
+  // Противоположные плоскости z->x
+  for (size_t i = 0; i < size.z + 2; i++)
+    for (size_t j = rank * size.x; j < (rank + 1) * size.x; j++) {
+      Point<size_t> pos(j, 0, i);
       currentArea->justSet(calculatePhiOnBorder(pos), pos);
 
       currentArea->justSet(calculatePhiOnBorder(pos.add(0, size.y, 0)), pos);
-    }
-
-  // Противоположные плоскости z->y
-  for (size_t i = 0; i < size.y + 2; i++)
-    for (size_t j = rank * size.z; j < (rank + 1) * size.z; j++) {
-      Point<size_t> pos(0, i, j);
-      currentArea->justSet(calculatePhiOnBorder(pos), pos);
-
-      currentArea->justSet(calculatePhiOnBorder(pos.add(size.x, 0, 0)), pos);
     }
 
   if (!borderUpper && !borderLower)
     return;
 
   // Если подобласть процесса на границе, заполняем верхние и нижние плоскости
-  for (size_t i = 0; i < size.x + 2; i++)
-    for (size_t j = 0; j < size.y + 2; j++) {
-      Point<size_t> pos(i, j, 0);
+  for (size_t i = 0; i < size.y + 2; i++)
+    for (size_t j = 0; j < size.z + 2; j++) {
+      Point<size_t> pos(0, i, j);
       if (borderUpper)
         currentArea->justSet(calculatePhiOnBorder(pos), pos);
       if (borderLower)
-        currentArea->justSet(calculatePhiOnBorder(pos.add(0, 0, distance.z)),
+        currentArea->justSet(calculatePhiOnBorder(pos.add(distance.x, 0, 0)),
                              pos);
     }
 }
@@ -149,28 +115,30 @@ double SolveData::calculateNextPhiAt(const Point<int> pos) {
 
 void SolveData::calculateConcurrentBorders() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < (int)size.x; i++)
-    for (int j = 0; j < (int)size.y; j++) {
-      Point<int> pos(i, j, rank * size.z);
-      nextArea->set(calculateNextPhiAt(pos), pos);
-      nextArea->set(calculateNextPhiAt(pos), pos.add(0, 0, size.z));
+
+  for (int i = 0; i < (int)size.y; i++)
+    for (int j = 0; j < (int)size.z; j++) {
+      Point<int> pos(rank * size.x, i, j);
+      nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+      pos = pos.add(size.x, 0, 0);
+      nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
     }
 }
 
 void SolveData::sendBorders() {
-  // TODO - Буферы для отправки и приема
   const Point<size_t>& size = currentArea->size;
+
   if (!borderLower) {
-    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD,
-              &sendRequests[0]);
-    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD,
-              &recvRequests[0]);
+    MPI_Isend(currentArea->getFlatSlice(0), size.y * size.z, MPI_DOUBLE,
+              rank + 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
+    MPI_Irecv(nextArea->getFlatSlice(0), size.y * size.z, MPI_DOUBLE, rank + 1,
+              123, MPI_COMM_WORLD, &recvRequests[0]);
   }
   if (!borderUpper) {
-    MPI_Isend(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD,
-              &sendRequests[1]);
-    MPI_Irecv(NULL, size.x * size.y, MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD,
-              &recvRequests[1]);
+    MPI_Isend(currentArea->getFlatSlice(size.x + 1), size.y * size.z,
+              MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
+    MPI_Irecv(nextArea->getFlatSlice(size.x + 1), size.y * size.z, MPI_DOUBLE,
+              rank - 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
   }
 }
 
@@ -178,9 +146,9 @@ void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
   for (int i = 0; i < (int)size.x; i++)
     for (int j = 0; j < (int)size.y; j++)
-      for (int k = (int)(rank * size.z); k < (int)((rank + 1) * size.z); k++) {
+      for (int k = 0; k < (int)size.z; k++) {
         Point<int> pos(i, j, k);
-        nextArea->set(calculateNextPhiAt(pos), pos);
+        nextArea->set(calculateNextPhiAt(pos), pos.add(rank * size.x, 0, 0));
       }
 }
 
@@ -208,7 +176,6 @@ bool SolveData::needNext() {
 }
 
 void SolveData::prepareNextStep() {
-  // TODO - Запись в области полученых границ
   if (!borderLower)
     MPI_Wait(&recvRequests[0], MPI_STATUS_IGNORE);
   if (!borderUpper)
