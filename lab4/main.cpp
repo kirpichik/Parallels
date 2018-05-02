@@ -1,5 +1,6 @@
 
 #include <mpi.h>
+#include <iostream>
 
 #include "solve_data.h"
 

@@ -2,6 +2,7 @@
 #include <mpi.h>
 #include <cmath>
 #include <stdexcept>
+#include <iostream>
 
 #include "solve_data.h"
 
@@ -116,8 +117,8 @@ double SolveData::calculateNextPhiAt(const Point<int> pos) {
 void SolveData::calculateConcurrentBorders() {
   const Point<size_t>& size = currentArea->size;
 
-  for (int i = 0; i < (int)size.y; i++)
-    for (int j = 0; j < (int)size.z; j++) {
+  for (int i = 0; i < static_cast<int>(size.y); i++)
+    for (int j = 0; j < static_cast<int>(size.z); j++) {
       Point<int> pos(rank * size.x, i, j);
       nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
       pos = pos.add(size.x, 0, 0);
@@ -144,9 +145,9 @@ void SolveData::sendBorders() {
 
 void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < (int)size.x; i++)
-    for (int j = 0; j < (int)size.y; j++)
-      for (int k = 0; k < (int)size.z; k++) {
+  for (int i = 0; i < static_cast<int>(size.x); i++)
+    for (int j = 0; j < static_cast<int>(size.y); j++)
+      for (int k = 0; k < static_cast<int>(size.z); k++) {
         Point<int> pos(i, j, k);
         nextArea->set(calculateNextPhiAt(pos), pos.add(rank * size.x, 0, 0));
       }
@@ -160,13 +161,14 @@ bool SolveData::needNext() {
 
   for (size_t i = 0; i < size.x; i++)
     for (size_t j = 0; j < size.y; j++)
-      for (size_t k = 0; k < size.z; j++) {
+      for (size_t k = 0; k < size.z; k++) {
         Point<size_t> pos(i, j, k);
         value = abs(currentArea->get(pos) - nextArea->get(pos));
         if (max > value)
           max = value;
       }
 
+  // TODO - malloc: *** incorrect checksum for freed object - object was probably modified after being freed.
   MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
   for (size_t i = 0; i < proc_count; i++)
     if (max > allMax[i])
@@ -176,10 +178,14 @@ bool SolveData::needNext() {
 }
 
 void SolveData::prepareNextStep() {
-  if (!borderLower)
+  if (!borderLower) {
     MPI_Wait(&recvRequests[0], MPI_STATUS_IGNORE);
-  if (!borderUpper)
+    MPI_Wait(&sendRequests[0], MPI_STATUS_IGNORE);
+  }
+  if (!borderUpper) {
     MPI_Wait(&recvRequests[1], MPI_STATUS_IGNORE);
+    MPI_Wait(&sendRequests[1], MPI_STATUS_IGNORE);
+  }
   currentArea->swapAreas(*nextArea);
 }
 

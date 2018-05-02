@@ -1,9 +1,12 @@
 
+#include <algorithm>
+
 #include "area.h"
 
 Area::Area(const Point<size_t> size, double initial_approx) : size(size) {
   size_t mem = (size.x + 2) * (size.y + 2) * (size.z + 2);
-  area = new double[mem]{initial_approx};
+  area = new double[mem];
+  std::fill_n(area, mem, initial_approx);
 }
 
 Area::~Area() {
