@@ -115,12 +115,11 @@ double SolveData::calculateNextPhiAt(const Point<int> pos) {
 void SolveData::calculateConcurrentBorders() {
   const Point<size_t>& size = currentArea->size;
 
-  for (int i = 0; i < static_cast<int>(size.y); i++)
-    for (int j = 0; j < static_cast<int>(size.z); j++) {
-      Point<int> pos(0, i, j);
+  for (int i = 1; i < static_cast<int>(size.y); i++)
+    for (int j = 1; j < static_cast<int>(size.z); j++) {
+      Point<int> pos(1, i, j);
       nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
-      pos = pos.add(size.x, 0, 0);
-      nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+      nextArea->justSet(calculateNextPhiAt(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x - 1, 0, 0));
     }
 }
 
