@@ -40,6 +40,11 @@ struct SolveData {
    */
   void prepareNext();
 
+  /**
+   * Распечатывает доступную область данного ранка.
+   */
+  void dumpIteration();
+
   ~SolveData();
 
  private:

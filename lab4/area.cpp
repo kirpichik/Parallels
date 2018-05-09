@@ -1,5 +1,6 @@
 
 #include <algorithm>
+#include <cstring>
 
 #include "area.h"
 
@@ -18,13 +19,6 @@ double Area::get(Point<int> pos) const {
 }
 
 void Area::set(double value, Point<size_t> pos) {
-  pos.x++;
-  pos.y++;
-  pos.z++;
-  justSet(value, pos);
-}
-
-void Area::justSet(double value, Point<size_t> pos) {
   area[pos.x * (size.y + 2) * (size.z + 2) + pos.y * (size.z + 2) + pos.z] = value;
 }
 
@@ -32,6 +26,11 @@ void Area::swapAreas(Area& area) {
   double* arr = this->area;
   this->area = area.area;
   area.area = arr;
+}
+
+void Area::copyData(const Area& area) {
+  size_t mem = (size.x + 2) * (size.y + 2) * (size.z + 2);
+  memcpy(this->area, area.area, mem * sizeof(double));
 }
 
 double* Area::getFlatSlice(size_t num) const {

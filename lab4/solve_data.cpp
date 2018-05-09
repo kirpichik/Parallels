@@ -12,7 +12,7 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   // Dx, Dy, Dz
   distance = Point<double>(2, 2, 2);
   // Nx, Ny, Nz
-  grid = Point<size_t>(16, 16, 16);
+  grid = Point<size_t>(8, 8, 8);
   // h_x, h_y, h_z
   height.x = distance.x / (grid.x - 1);
   height.y = distance.y / (grid.y - 1);
@@ -34,6 +34,7 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   borderUpper = (rank + 1) == proc_count;
 
   initBorders();
+  nextArea->copyData(*currentArea);
 }
 
 SolveData::~SolveData() {
@@ -45,32 +46,32 @@ void SolveData::initBorders() {
   const Point<size_t>& size = currentArea->size;
 
   // Противоположные плоскости z->x
-  for (size_t i = 1; i < size.z; i++)
-    for (size_t j = 1; j < size.x; j++) {
+  for (size_t i = 1; i <= size.z; i++)
+    for (size_t j = 1; j <= size.x; j++) {
       Point<size_t> pos(j, 0, i);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, size.y, 0)), pos.add(0, size.y, 0));
+      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, size.y, 0)), pos.add(0, size.y + 1, 0));
     }
 
   // Противоположные плоскости y->x
-  for (size_t i = 1; i < size.y; i++)
-    for (size_t j = 1; j < size.x; j++) {
+  for (size_t i = 1; i <= size.y; i++)
+    for (size_t j = 1; j <= size.x; j++) {
       Point<size_t> pos(j, i, 0);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z)), pos.add(0, 0, size.z));
+      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z)), pos.add(0, 0, size.z + 1));
     }
 
   if (!borderUpper && !borderLower)
     return;
 
   // Если подобласть процесса на границе, заполняем верхние и нижние плоскости
-  for (size_t i = 1; i < size.y; i++)
-    for (size_t j = 1; j < size.z; j++) {
+  for (size_t i = 1; i <= size.y; i++)
+    for (size_t j = 1; j <= size.z; j++) {
       Point<size_t> pos(0, i, j);
-      if (borderUpper)
-        currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
       if (borderLower)
-        currentArea->justSet(calculatePhiOnBorder(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x, 0, 0));
+        currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+      if (borderUpper)
+        currentArea->set(calculatePhiOnBorder(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x + 1, 0, 0));
     }
 }
 
@@ -90,16 +91,16 @@ double SolveData::calculateNextPhiAt(const Point<int> pos) {
   double powHy = pow(height.y, 2);
   double powHz = pow(height.z, 2);
 
-  double first = currentArea->get(pos.add(1, 0, 0)) -
-                 currentArea->get(pos) * 2 +
+  double first = currentArea->get(pos.add(1, 0, 0)) +
+                 //currentArea->get(pos) * 2 +
                  currentArea->get(pos.add(-1, 0, 0));
 
-  double second = currentArea->get(pos.add(0, 1, 0)) -
-                  currentArea->get(pos) * 2 +
+  double second = currentArea->get(pos.add(0, 1, 0)) +
+                  //currentArea->get(pos) * 2 +
                   currentArea->get(pos.add(0, -1, 0));
 
-  double third = currentArea->get(pos.add(0, 0, 1)) -
-                 currentArea->get(pos) * 2 +
+  double third = currentArea->get(pos.add(0, 0, 1)) +
+                 //currentArea->get(pos) * 2 +
                  currentArea->get(pos.add(0, 0, -1));
 
   double divider = 2 / powHx + 2 / powHy + 2 / powHz + paramA;
@@ -115,11 +116,16 @@ double SolveData::calculateNextPhiAt(const Point<int> pos) {
 void SolveData::calculateConcurrentBorders() {
   const Point<size_t>& size = currentArea->size;
 
+  if (borderLower && borderUpper)
+    return;
+
   for (int i = 1; i < static_cast<int>(size.y); i++)
     for (int j = 1; j < static_cast<int>(size.z); j++) {
       Point<int> pos(1, i, j);
-      nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
-      nextArea->justSet(calculateNextPhiAt(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x - 1, 0, 0));
+      if (!borderLower)
+        nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+      if (!borderUpper)
+        nextArea->set(calculateNextPhiAt(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x - 1, 0, 0));
     }
 }
 
@@ -146,7 +152,7 @@ void SolveData::calculateCenter() {
     for (int j = 1; j < static_cast<int>(size.y) - 1; j++)
       for (int k = 1; k < static_cast<int>(size.z) - 1; k++) {
         Point<int> pos(i, j, k);
-        nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+        nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
       }
 }
 
@@ -165,7 +171,6 @@ bool SolveData::needNext() {
           max = value;
       }
 
-  // TODO - malloc: *** incorrect checksum for freed object - object was probably modified after being freed.
   MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
   for (size_t i = 0; i < proc_count; i++)
     if (max > allMax[i])
@@ -187,5 +192,32 @@ void SolveData::waitCommunication() {
 
 void SolveData::prepareNext() {
   currentArea->swapAreas(*nextArea);
+}
+
+void SolveData::dumpIteration() {
+  const Point<size_t>& size = currentArea->size;
+  for (size_t x = 0; x < size.x + 2; x++) {
+    for (size_t y = 0; y < size.y + 2; y++) {
+      for (size_t z = 0; z < size.z + 2; z++) {
+        double value = currentArea->get(Point<size_t>(x, y, z));
+        if (value != value) {
+          printf(" \e[0;31m%.1f\e[0m ", value);
+          continue;
+        }
+        if (value >= 0)
+          printf(" ");
+        if (abs(value) >= epsilon) {
+          if (value > 0)
+            printf("\e[0;32m");
+          else
+            printf("\e[0;36m");
+          printf("%.1f\e[0m ", value);
+        } else
+          printf("%.1f ", value);
+      }
+      printf("\n\n\n");
+    }
+    printf("=================================== x: %lu\n", x);
+  }
 }
 
