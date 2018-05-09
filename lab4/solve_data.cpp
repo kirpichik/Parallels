@@ -45,34 +45,32 @@ void SolveData::initBorders() {
   const Point<size_t>& size = currentArea->size;
 
   // Противоположные плоскости y->x
-  for (size_t i = 0; i < size.y + 2; i++)
-    for (size_t j = rank * size.x; j < (rank + 1) * size.x; j++) {
+  for (size_t i = 1; i < size.y; i++)
+    for (size_t j = 1; j < size.x; j++) {
       Point<size_t> pos(j, i, 0);
-      currentArea->justSet(calculatePhiOnBorder(pos), pos);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(0, 0, size.z)), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z)), pos);
     }
 
   // Противоположные плоскости z->x
-  for (size_t i = 0; i < size.z + 2; i++)
-    for (size_t j = rank * size.x; j < (rank + 1) * size.x; j++) {
+  for (size_t i = 1; i < size.z; i++)
+    for (size_t j = 1; j < size.x; j++) {
       Point<size_t> pos(j, 0, i);
-      currentArea->justSet(calculatePhiOnBorder(pos), pos);
-
-      currentArea->justSet(calculatePhiOnBorder(pos.add(0, size.y, 0)), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, size.y, 0)), pos);
     }
 
   if (!borderUpper && !borderLower)
     return;
 
   // Если подобласть процесса на границе, заполняем верхние и нижние плоскости
-  for (size_t i = 0; i < size.y + 2; i++)
-    for (size_t j = 0; j < size.z + 2; j++) {
+  for (size_t i = 1; i < size.y; i++)
+    for (size_t j = 1; j < size.z; j++) {
       Point<size_t> pos(0, i, j);
       if (borderUpper)
-        currentArea->justSet(calculatePhiOnBorder(pos), pos);
+        currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
       if (borderLower)
-        currentArea->justSet(calculatePhiOnBorder(pos.add(distance.x, 0, 0)),
-                             pos);
+        currentArea->justSet(calculatePhiOnBorder(pos.add((rank + 1) * size.x, 0, 0)), pos);
     }
 }
 
