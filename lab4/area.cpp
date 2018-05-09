@@ -14,10 +14,7 @@ Area::~Area() {
 }
 
 double Area::get(Point<int> pos) const {
-  pos.x++;
-  pos.y++;
-  pos.z++;
-  return area[pos.x * size.y * size.z + pos.y * size.z + pos.z];
+  return area[pos.x * (size.y + 2) * (size.z + 2) + pos.y * (size.z + 2) + pos.z];
 }
 
 void Area::set(double value, Point<size_t> pos) {
@@ -28,7 +25,7 @@ void Area::set(double value, Point<size_t> pos) {
 }
 
 void Area::justSet(double value, Point<size_t> pos) {
-  area[pos.x * size.y * size.z + pos.y * size.z + pos.z] = value;
+  area[pos.x * (size.y + 2) * (size.z + 2) + pos.y * (size.z + 2) + pos.z] = value;
 }
 
 void Area::swapAreas(Area& area) {
@@ -38,6 +35,6 @@ void Area::swapAreas(Area& area) {
 }
 
 double* Area::getFlatSlice(size_t num) const {
-  return area + (num * size.y * size.z);
+  return area + (num * (size.y + 2) * (size.z + 2));
 }
 

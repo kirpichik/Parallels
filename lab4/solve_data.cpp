@@ -30,8 +30,8 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   Point<size_t> size(grid.x / proc_count, grid.y, grid.z);
   currentArea = new Area(size, initial_approx);
   nextArea = new Area(size, initial_approx);
-  borderUpper = !rank;
-  borderLower = (rank + 1) == proc_count;
+  borderLower = !rank;
+  borderUpper = (rank + 1) == proc_count;
 
   initBorders();
 }
@@ -127,26 +127,26 @@ void SolveData::sendBorders() {
   const Point<size_t>& size = currentArea->size;
 
   if (!borderLower) {
-    MPI_Isend(currentArea->getFlatSlice(1), size.y * size.z, MPI_DOUBLE,
-              rank + 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
-    MPI_Irecv(nextArea->getFlatSlice(0), size.y * size.z, MPI_DOUBLE, rank + 1,
+    MPI_Isend(currentArea->getFlatSlice(1), (size.y + 2) * (size.z + 2), MPI_DOUBLE,
+              rank - 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
+    MPI_Irecv(nextArea->getFlatSlice(0), (size.y + 2) * (size.z + 2), MPI_DOUBLE, rank - 1,
               123, MPI_COMM_WORLD, &recvRequests[0]);
   }
   if (!borderUpper) {
-    MPI_Isend(currentArea->getFlatSlice(size.x), size.y * size.z,
-              MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
-    MPI_Irecv(nextArea->getFlatSlice(size.x + 1), size.y * size.z, MPI_DOUBLE,
-              rank - 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
+    MPI_Isend(currentArea->getFlatSlice(size.x), (size.y + 2) * (size.z + 2),
+              MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
+    MPI_Irecv(nextArea->getFlatSlice(size.x + 1), (size.y + 2) * (size.z + 2), MPI_DOUBLE,
+              rank + 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
   }
 }
 
 void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 0; i < static_cast<int>(size.x); i++)
-    for (int j = 0; j < static_cast<int>(size.y); j++)
-      for (int k = 0; k < static_cast<int>(size.z); k++) {
+  for (int i = 2; i < static_cast<int>(size.x) - 2; i++)
+    for (int j = 1; j < static_cast<int>(size.y) - 1; j++)
+      for (int k = 1; k < static_cast<int>(size.z) - 1; k++) {
         Point<int> pos(i, j, k);
-        nextArea->set(calculateNextPhiAt(pos), pos.add(rank * size.x, 0, 0));
+        nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
       }
 }
 
@@ -156,9 +156,9 @@ bool SolveData::needNext() {
   double allMax[proc_count];
   const Point<size_t>& size = currentArea->size;
 
-  for (size_t i = 0; i < size.x; i++)
-    for (size_t j = 0; j < size.y; j++)
-      for (size_t k = 0; k < size.z; k++) {
+  for (size_t i = 1; i < size.x; i++)
+    for (size_t j = 1; j < size.y; j++)
+      for (size_t k = 1; k < size.z; k++) {
         Point<size_t> pos(i, j, k);
         value = abs(currentArea->get(pos) - nextArea->get(pos));
         if (max > value)
@@ -166,7 +166,7 @@ bool SolveData::needNext() {
       }
 
   // TODO - malloc: *** incorrect checksum for freed object - object was probably modified after being freed.
-  //MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
   for (size_t i = 0; i < proc_count; i++)
     if (max > allMax[i])
       max = allMax[i];
@@ -174,15 +174,18 @@ bool SolveData::needNext() {
   return max < epsilon;
 }
 
-void SolveData::prepareNextStep() {
-  if (!borderLower) {
-    MPI_Wait(&recvRequests[0], MPI_STATUS_IGNORE);
-    //MPI_Wait(&sendRequests[0], MPI_STATUS_IGNORE);
-  }
+void SolveData::waitCommunication() {
   if (!borderUpper) {
     MPI_Wait(&recvRequests[1], MPI_STATUS_IGNORE);
-    //MPI_Wait(&sendRequests[1], MPI_STATUS_IGNORE);
+    MPI_Wait(&sendRequests[1], MPI_STATUS_IGNORE);
   }
+  if (!borderLower) {
+    MPI_Wait(&recvRequests[0], MPI_STATUS_IGNORE);
+    MPI_Wait(&sendRequests[0], MPI_STATUS_IGNORE);
+  }
+}
+
+void SolveData::prepareNext() {
   currentArea->swapAreas(*nextArea);
 }
 

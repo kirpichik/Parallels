@@ -15,16 +15,11 @@ int main(int argc, char* argv[]) {
   bool next = true;
 
   while (next) {
-    std::cout << rank << ". Step 1" << std::endl;
     data.calculateConcurrentBorders();
-    std::cout << rank << ". Step 2" << std::endl;
     data.sendBorders();
-    std::cout << rank << ". Step 3" << std::endl;
     data.calculateCenter();
-    std::cout << rank << ". Step 4" << std::endl;
+    data.waitCommunication();
     next = data.needNext();
-    std::cout << rank << ". Step 5" << std::endl;
-    data.prepareNextStep();
   }
 
   MPI_Finalize();
