@@ -44,20 +44,20 @@ SolveData::~SolveData() {
 void SolveData::initBorders() {
   const Point<size_t>& size = currentArea->size;
 
-  // Противоположные плоскости y->x
-  for (size_t i = 1; i < size.y; i++)
-    for (size_t j = 1; j < size.x; j++) {
-      Point<size_t> pos(j, i, 0);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z)), pos);
-    }
-
   // Противоположные плоскости z->x
   for (size_t i = 1; i < size.z; i++)
     for (size_t j = 1; j < size.x; j++) {
       Point<size_t> pos(j, 0, i);
       currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, size.y, 0)), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, size.y, 0)), pos.add(0, size.y, 0));
+    }
+
+  // Противоположные плоскости y->x
+  for (size_t i = 1; i < size.y; i++)
+    for (size_t j = 1; j < size.x; j++) {
+      Point<size_t> pos(j, i, 0);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+      currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z)), pos.add(0, 0, size.z));
     }
 
   if (!borderUpper && !borderLower)
@@ -70,7 +70,7 @@ void SolveData::initBorders() {
       if (borderUpper)
         currentArea->justSet(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
       if (borderLower)
-        currentArea->justSet(calculatePhiOnBorder(pos.add((rank + 1) * size.x, 0, 0)), pos);
+        currentArea->justSet(calculatePhiOnBorder(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x, 0, 0));
     }
 }
 
@@ -118,9 +118,9 @@ void SolveData::calculateConcurrentBorders() {
   for (int i = 0; i < static_cast<int>(size.y); i++)
     for (int j = 0; j < static_cast<int>(size.z); j++) {
       Point<int> pos(0, i, j);
-      nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+      nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
       pos = pos.add(size.x, 0, 0);
-      nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+      nextArea->justSet(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
     }
 }
 
