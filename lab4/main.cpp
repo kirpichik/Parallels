@@ -15,17 +15,22 @@ int main(int argc, char* argv[]) {
   SolveData data(size, rank);
   bool next = true;
 
+  if (!rank) {
+    data.dumpIteration();
+    printf("0. #################################\n");
+  }
+
   size_t m = 0;
   while (next) {
-    if (m++ % 10000 == 0 && !rank) {
-      data.dumpIteration();
-      printf("%lu. #############################\n", m - 1);
-    }
     data.calculateConcurrentBorders();
     data.sendBorders();
     data.calculateCenter();
     data.waitCommunication();
-    next = data.needNext();
+    next = !data.needNext();
+    if (m++ % 10000 == 0 && !rank) {
+      data.dumpIteration();
+      printf("%lu. #############################\n", m);
+    }
     data.prepareNext();
   }
 

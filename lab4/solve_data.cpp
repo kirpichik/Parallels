@@ -14,9 +14,9 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   // Nx, Ny, Nz
   grid = Point<size_t>(8, 8, 8);
   // h_x, h_y, h_z
-  height.x = distance.x / (grid.x - 1);
-  height.y = distance.y / (grid.y - 1);
-  height.z = distance.z / (grid.z - 1);
+  height.x = distance.x / (grid.x + 1);
+  height.y = distance.y / (grid.y + 1);
+  height.z = distance.z / (grid.z + 1);
 
   paramA = 10e5;
   epsilon = 10e-8;
@@ -50,7 +50,7 @@ void SolveData::initBorders() {
     for (size_t j = 1; j <= size.x; j++) {
       Point<size_t> pos(j, 0, i);
       currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, size.y, 0)), pos.add(0, size.y + 1, 0));
+      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, size.y + 1, 0)), pos.add(0, size.y + 1, 0));
     }
 
   // Противоположные плоскости y->x
@@ -58,7 +58,7 @@ void SolveData::initBorders() {
     for (size_t j = 1; j <= size.x; j++) {
       Point<size_t> pos(j, i, 0);
       currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z)), pos.add(0, 0, size.z + 1));
+      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z + 1)), pos.add(0, 0, size.z + 1));
     }
 
   if (!borderUpper && !borderLower)
@@ -71,7 +71,7 @@ void SolveData::initBorders() {
       if (borderLower)
         currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
       if (borderUpper)
-        currentArea->set(calculatePhiOnBorder(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x + 1, 0, 0));
+        currentArea->set(calculatePhiOnBorder(pos.add((rank + 1) * size.x + 1, 0, 0)), pos.add(size.x + 1, 0, 0));
     }
 }
 
@@ -83,7 +83,7 @@ double SolveData::calculatePhiOnBorder(const Point<int> pos) {
 }
 
 double SolveData::calculateRo(const Point<int> pos) {
-  return 6 - paramA * currentArea->get(pos);
+  return 6 - paramA * calculatePhiOnBorder(pos);
 }
 
 double SolveData::calculateNextPhiAt(const Point<int> pos) {
@@ -119,8 +119,8 @@ void SolveData::calculateConcurrentBorders() {
   if (borderLower && borderUpper)
     return;
 
-  for (int i = 1; i < static_cast<int>(size.y); i++)
-    for (int j = 1; j < static_cast<int>(size.z); j++) {
+  for (int i = 1; i <= static_cast<int>(size.y); i++)
+    for (int j = 1; j <= static_cast<int>(size.z); j++) {
       Point<int> pos(1, i, j);
       if (!borderLower)
         nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
@@ -149,8 +149,8 @@ void SolveData::sendBorders() {
 void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
   for (int i = 2; i < static_cast<int>(size.x) - 2; i++)
-    for (int j = 1; j < static_cast<int>(size.y) - 1; j++)
-      for (int k = 1; k < static_cast<int>(size.z) - 1; k++) {
+    for (int j = 1; j < static_cast<int>(size.y); j++)
+      for (int k = 1; k < static_cast<int>(size.z); k++) {
         Point<int> pos(i, j, k);
         nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
       }
@@ -175,6 +175,9 @@ bool SolveData::needNext() {
   for (size_t i = 0; i < proc_count; i++)
     if (max > allMax[i])
       max = allMax[i];
+
+  //if (!rank)
+  //  printf("==%f==", max);
 
   return max < epsilon;
 }
