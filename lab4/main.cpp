@@ -1,4 +1,3 @@
-
 #include <mpi.h>
 #include <iostream>
 #include <unistd.h>
@@ -15,26 +14,25 @@ int main(int argc, char* argv[]) {
   SolveData data(size, rank);
   bool next = true;
 
-  if (!rank) {
+  if (rank == 0) {
     data.dumpIteration();
-    printf("0. #################################\n");
+    std::cout << "0. #################################\n" << std::endl;
   }
 
-  size_t m = 0;
+  size_t iter = 0;
   while (next) {
     data.calculateConcurrentBorders();
     data.sendBorders();
     data.calculateCenter();
     data.waitCommunication();
     next = !data.needNext();
-    if (m++ % 10000 == 0 && !rank) {
+    if (iter++ % 10000 == 0 && rank == 0) {
       data.dumpIteration();
-      printf("%lu. #############################\n", m);
+      std::cout << "Iter number(in 10k) "<< iter << ". #############################" << std::endl;
     }
     data.prepareNext();
   }
 
   MPI_Finalize();
-  return 0;
+  return (EXIT_SUCCESS);
 }
-

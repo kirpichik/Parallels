@@ -3,7 +3,6 @@
 #define _POINT_H
 
 #include <cstddef>
-#include <iostream>
 
 template <typename T>
 struct Point {

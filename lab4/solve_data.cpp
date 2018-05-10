@@ -3,7 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
-
+#include <iterator>
 #include "solve_data.h"
 
 SolveData::SolveData(size_t proc_count, size_t rank) {
@@ -199,28 +199,30 @@ void SolveData::prepareNext() {
 
 void SolveData::dumpIteration() {
   const Point<size_t>& size = currentArea->size;
+  std::cout << std::fixed;
+  std::cout.precision(1);
   for (size_t x = 0; x < size.x + 2; x++) {
     for (size_t y = 0; y < size.y + 2; y++) {
       for (size_t z = 0; z < size.z + 2; z++) {
         double value = currentArea->get(Point<size_t>(x, y, z));
-        if (value != value) {
-          printf(" \e[0;31m%.1f\e[0m ", value);
+        if (std::isnan(value)) {
+            std::cout << " \e[0;31m" << value <<"\e[0m " << std::flush;
           continue;
         }
         if (value >= 0)
-          printf(" ");
+          std::cout << ' ' << std::flush;
         if (abs(value) >= epsilon) {
           if (value > 0)
-            printf("\e[0;32m");
+            std::cout << "\e[0;32m" << std::flush;
           else
-            printf("\e[0;36m");
-          printf("%.1f\e[0m ", value);
+            std::cout << "\e[0;36m" << std::flush;
+        std::cout << value << "\e[0m" << std::flush;
         } else
-          printf("%.1f ", value);
+          std::cout << value << std::flush;
       }
-      printf("\n\n\n");
+      std::cout << "\n" <<  std::endl;
     }
-    printf("=================================== x: %lu\n", x);
+    std::cout << "=================================== x:" <<  x << std::endl;
   }
 }
 
