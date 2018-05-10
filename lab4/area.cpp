@@ -23,9 +23,7 @@ void Area::set(double value, Point<size_t> pos) {
 }
 
 void Area::swapAreas(Area& area) {
-  double* arr = this->area;
-  this->area = area.area;
-  area.area = arr;
+  std::swap(this->area, area.area);
 }
 
 void Area::copyData(const Area& area) {
