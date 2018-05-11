@@ -1,9 +1,7 @@
-
 #include <mpi.h>
 #include <cmath>
 #include <stdexcept>
 #include <iostream>
-#include <iterator>
 #include "solve_data.h"
 
 SolveData::SolveData(size_t proc_count, size_t rank) {
@@ -50,7 +48,9 @@ void SolveData::initBorders() {
     for (size_t j = 1; j <= size.x; j++) {
       Point<size_t> pos(j, 0, i);
       currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, size.y + 1, 0)), pos.add(0, size.y + 1, 0));
+      currentArea->set(
+          calculatePhiOnBorder(pos.add(rank * size.x, size.y + 1, 0)),
+          pos.add(0, size.y + 1, 0));
     }
 
   // Противоположные плоскости y->x
@@ -58,7 +58,9 @@ void SolveData::initBorders() {
     for (size_t j = 1; j <= size.x; j++) {
       Point<size_t> pos(j, i, 0);
       currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
-      currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z + 1)), pos.add(0, 0, size.z + 1));
+      currentArea->set(
+          calculatePhiOnBorder(pos.add(rank * size.x, 0, size.z + 1)),
+          pos.add(0, 0, size.z + 1));
     }
 
   if (!borderUpper && !borderLower)
@@ -69,9 +71,12 @@ void SolveData::initBorders() {
     for (size_t j = 1; j <= size.z; j++) {
       Point<size_t> pos(0, i, j);
       if (borderLower)
-        currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)), pos);
+        currentArea->set(calculatePhiOnBorder(pos.add(rank * size.x, 0, 0)),
+                         pos);
       if (borderUpper)
-        currentArea->set(calculatePhiOnBorder(pos.add((rank + 1) * size.x + 1, 0, 0)), pos.add(size.x + 1, 0, 0));
+        currentArea->set(
+            calculatePhiOnBorder(pos.add((rank + 1) * size.x + 1, 0, 0)),
+            pos.add(size.x + 1, 0, 0));
     }
 }
 
@@ -87,20 +92,17 @@ double SolveData::calculateRo(const Point<int> pos) {
 }
 
 double SolveData::calculateNextPhiAt(const Point<int> pos) {
-  double powHx = pow(height.x, 2);
-  double powHy = pow(height.y, 2);
-  double powHz = pow(height.z, 2);
+  double powHx = height.x * height.x;
+  double powHy = height.y * height.y;
+  double powHz = height.z * height.z;
 
   double first = currentArea->get(pos.add(1, 0, 0)) +
-                 //currentArea->get(pos) * 2 +
                  currentArea->get(pos.add(-1, 0, 0));
 
   double second = currentArea->get(pos.add(0, 1, 0)) +
-                  //currentArea->get(pos) * 2 +
                   currentArea->get(pos.add(0, -1, 0));
 
   double third = currentArea->get(pos.add(0, 0, 1)) +
-                 //currentArea->get(pos) * 2 +
                  currentArea->get(pos.add(0, 0, -1));
 
   double divider = 2 / powHx + 2 / powHy + 2 / powHz + paramA;
@@ -125,7 +127,8 @@ void SolveData::calculateConcurrentBorders() {
       if (!borderLower)
         nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
       if (!borderUpper)
-        nextArea->set(calculateNextPhiAt(pos.add((rank + 1) * size.x, 0, 0)), pos.add(size.x - 1, 0, 0));
+        nextArea->set(calculateNextPhiAt(pos.add((rank + 1) * size.x, 0, 0)),
+                      pos.add(size.x - 1, 0, 0));
     }
 }
 
@@ -133,16 +136,16 @@ void SolveData::sendBorders() {
   const Point<size_t>& size = currentArea->size;
 
   if (!borderLower) {
-    MPI_Isend(currentArea->getFlatSlice(1), (size.y + 2) * (size.z + 2), MPI_DOUBLE,
-              rank - 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
-    MPI_Irecv(nextArea->getFlatSlice(0), (size.y + 2) * (size.z + 2), MPI_DOUBLE, rank - 1,
-              123, MPI_COMM_WORLD, &recvRequests[0]);
+    MPI_Isend(currentArea->getFlatSlice(1), (size.y + 2) * (size.z + 2),
+              MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
+    MPI_Irecv(nextArea->getFlatSlice(0), (size.y + 2) * (size.z + 2),
+              MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &recvRequests[0]);
   }
   if (!borderUpper) {
     MPI_Isend(currentArea->getFlatSlice(size.x), (size.y + 2) * (size.z + 2),
               MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
-    MPI_Irecv(nextArea->getFlatSlice(size.x + 1), (size.y + 2) * (size.z + 2), MPI_DOUBLE,
-              rank + 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
+    MPI_Irecv(nextArea->getFlatSlice(size.x + 1), (size.y + 2) * (size.z + 2),
+              MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
   }
 }
 
@@ -176,9 +179,6 @@ bool SolveData::needNext() {
     if (max > allMax[i])
       max = allMax[i];
 
-  //if (!rank)
-  //  printf("==%f==", max);
-
   return max < epsilon;
 }
 
@@ -206,7 +206,7 @@ void SolveData::dumpIteration() {
       for (size_t z = 0; z < size.z + 2; z++) {
         double value = currentArea->get(Point<size_t>(x, y, z));
         if (std::isnan(value)) {
-            std::cout << " \e[0;31m" << value <<"\e[0m " << std::flush;
+          std::cout << " \e[0;31m" << value << "\e[0m " << std::flush;
           continue;
         }
         if (value >= 0)
@@ -216,13 +216,12 @@ void SolveData::dumpIteration() {
             std::cout << "\e[0;32m" << std::flush;
           else
             std::cout << "\e[0;36m" << std::flush;
-        std::cout << value << "\e[0m" << std::flush;
+          std::cout << value << "\e[0m" << std::flush;
         } else
           std::cout << value << std::flush;
       }
-      std::cout << "\n" <<  std::endl;
+      std::cout << "\n" << std::endl;
     }
-    std::cout << "=================================== x:" <<  x << std::endl;
+    std::cout << "=================================== x:" << x << std::endl;
   }
 }
-
