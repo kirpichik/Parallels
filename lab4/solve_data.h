@@ -1,12 +1,11 @@
-
 #ifndef _SOLVE_DATA
 #define _SOLVE_DATA
 
 #include "point.h"
 #include "area.h"
 
-struct SolveData {
-
+class SolveData {
+ public:
   SolveData(size_t proc_count, size_t rank);
 
   /**
@@ -86,4 +85,3 @@ struct SolveData {
 };
 
 #endif
-
