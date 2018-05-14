@@ -181,8 +181,10 @@ bool SolveData::needNext() {
     if (max < allMax[i])
       max = allMax[i];
 
-  if (rank == 0)
+  if (rank == 0) {
+    std::cout.precision(8);
     std::cout << "Max is: " << max << std::endl;
+  }
 
   return max < epsilon;
 }
@@ -227,7 +229,7 @@ void SolveData::dumpIteration() {
       }
       std::cout << "\n" << std::endl;
     }
-    std::cout << "=================================== x:" << x << std::endl;
+    std::cout << "=================================== Area:" << x << std::endl;
   }
 }
 
