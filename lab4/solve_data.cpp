@@ -1,4 +1,3 @@
-
 #include <mpi.h>
 #include <cmath>
 #include <iostream>
@@ -6,7 +5,10 @@
 
 #include "solve_data.h"
 
-SolveData::SolveData(size_t proc_count, size_t rank) {
+SolveData::SolveData(const size_t _proc_count,
+                     const size_t _rank,
+                     const long double _epsilon,
+                     const long double _paramA) {
   // x0, y0, z0
   center = Point<long double>(-1, -1, -1);
   // Dx, Dy, Dz
@@ -18,11 +20,11 @@ SolveData::SolveData(size_t proc_count, size_t rank) {
   height.y = distance.y / (grid.y + 1);
   height.z = distance.z / (grid.z + 1);
 
-  paramA = 10e5;
-  epsilon = 10e-8;
+  paramA = _paramA;
+  epsilon = _epsilon;
   initial_approx = 0;
-  this->rank = rank;
-  this->proc_count = proc_count;
+  this->rank = _rank;
+  this->proc_count = _proc_count;
 
   if (grid.x % proc_count != 0)
     throw std::runtime_error("Invalid process count.");
@@ -82,18 +84,18 @@ void SolveData::initBorders() {
     }
 }
 
-long double SolveData::calculatePhiOnBorder(const Point<int> pos) {
+long double SolveData::calculatePhiOnBorder(const Point<int> pos) const noexcept {
   long double x = center.x + pos.x * height.x;
   long double y = center.y + pos.y * height.y;
   long double z = center.z + pos.z * height.z;
   return x * x + y * y + z * z;
 }
 
-long double SolveData::calculateRo(const Point<int> pos) {
+long double SolveData::calculateRo(const Point<int> pos) const noexcept {
   return 6 - paramA * calculatePhiOnBorder(pos);
 }
 
-long double SolveData::calculateNextPhiAt(const Point<int> pos) {
+long double SolveData::calculateNextPhiAt(const Point<int> pos) const noexcept {
   long double powHx = height.x * height.x;
   long double powHy = height.y * height.y;
   long double powHz = height.z * height.z;
@@ -176,7 +178,8 @@ bool SolveData::needNext() {
           max = value;
       }
 
-  MPI_Allgather(&max, 1, MPI_LONG_DOUBLE, allMax, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgather(&max, 1, MPI_LONG_DOUBLE, allMax, 1, MPI_LONG_DOUBLE,
+                MPI_COMM_WORLD);
   for (size_t i = 0; i < proc_count; i++)
     if (max < allMax[i])
       max = allMax[i];
@@ -232,4 +235,3 @@ void SolveData::dumpIteration() {
     std::cout << "=================================== Area:" << x << std::endl;
   }
 }
-

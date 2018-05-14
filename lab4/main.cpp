@@ -3,6 +3,9 @@
 
 #include "solve_data.h"
 
+const long double EPSILON_PARAM = 10e-8;
+const long double A_PARAM = 10e5;
+
 int main(int argc, char* argv[]) {
   int size, rank;
 
@@ -10,7 +13,7 @@ int main(int argc, char* argv[]) {
   MPI_Comm_size(MPI_COMM_WORLD, &size);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  SolveData data(size, rank);
+  SolveData data(size, rank, EPSILON_PARAM, A_PARAM);
   bool next = true;
 
   if (rank == 0) {
@@ -36,4 +39,3 @@ int main(int argc, char* argv[]) {
   MPI_Finalize();
   return (EXIT_SUCCESS);
 }
-

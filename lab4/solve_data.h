@@ -6,7 +6,10 @@
 
 class SolveData {
  public:
-  SolveData(size_t proc_count, size_t rank);
+  SolveData(const size_t proc_count,
+            const size_t rank,
+            const long double epsilon,
+            const long double paramA);
 
   /**
    * Обсчитывает следующий шаг для граничащих подобластей,
@@ -51,6 +54,8 @@ class SolveData {
   Point<long double> distance;
   Point<long double> height;
   Point<size_t> grid;
+  size_t rank;
+  size_t proc_count;
   long double paramA;
   long double epsilon;
   long double initial_approx;
@@ -58,8 +63,6 @@ class SolveData {
   Area* nextArea;
   bool borderUpper;
   bool borderLower;
-  size_t rank;
-  size_t proc_count;
   MPI_Request sendRequests[2];
   MPI_Request recvRequests[2];
 
@@ -71,18 +74,17 @@ class SolveData {
   /**
    * Вычисляет значение функции фи на границе области.
    */
-  long double calculatePhiOnBorder(const Point<int> pos);
+  long double calculatePhiOnBorder(const Point<int> pos) const noexcept;
 
   /**
    * Вычисляет значение функции фи методом приближения внутри области.
    */
-  long double calculateNextPhiAt(const Point<int> pos);
+  long double calculateNextPhiAt(const Point<int> pos) const noexcept;
 
   /**
    * Вычисляет значение функции ро.
    */
-  long double calculateRo(const Point<int> pos);
+  long double calculateRo(const Point<int> pos) const noexcept;
 };
 
 #endif
-
