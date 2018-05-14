@@ -171,7 +171,7 @@ bool SolveData::needNext() {
     for (size_t j = 1; j < size.y; j++)
       for (size_t k = 1; k < size.z; k++) {
         Point<size_t> pos(i, j, k);
-        value = abs(currentArea->get(pos) - nextArea->get(pos));
+        value = std::abs(currentArea->get(pos) - nextArea->get(pos));
         if (max < value)
           max = value;
       }
@@ -216,12 +216,11 @@ void SolveData::dumpIteration() {
         }
         if (value >= 0)
           std::cout << ' ' << std::flush;
-        if (abs(value) >= epsilon) {
+        if (std::abs(value) >= epsilon) {
           if (value > 0)
             std::cout << "\e[0;32m" << std::flush;
           else
             std::cout << "\e[0;36m" << std::flush;
-          // printf("%.10e", value);
           std::cout << value << "\e[0m" << std::flush;
         } else
           std::cout << value << std::flush;
