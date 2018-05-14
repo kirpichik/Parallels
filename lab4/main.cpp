@@ -1,6 +1,5 @@
 #include <mpi.h>
 #include <iostream>
-
 #include "solve_data.h"
 
 int main(int argc, char* argv[]) {
@@ -15,7 +14,7 @@ int main(int argc, char* argv[]) {
 
   if (rank == 0) {
     data.dumpIteration();
-    std::cout << "0. #################################\n" << std::endl;
+    std::cout << "Begined data. #################################\n" << std::endl;
   }
 
   size_t iter = 0;
@@ -25,9 +24,9 @@ int main(int argc, char* argv[]) {
     data.calculateCenter();
     data.waitCommunication();
     next = !data.needNext();
-    if (iter++ % 10000 == 0 && rank == 0) {
+    if (/*iter++ % 10000 == 0 &&*/ rank == 0) {
       data.dumpIteration();
-      std::cout << "Iter number(in 10k) "<< iter << ". #############################" << std::endl;
+      std::cout << "Iter number "<< iter << ". #############################\n" << std::endl;
     }
     data.prepareNext();
   }
