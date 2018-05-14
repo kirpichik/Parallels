@@ -8,9 +8,9 @@
 
 SolveData::SolveData(size_t proc_count, size_t rank) {
   // x0, y0, z0
-  center = Point<double>(-1, -1, -1);
+  center = Point<long double>(-1, -1, -1);
   // Dx, Dy, Dz
-  distance = Point<double>(2, 2, 2);
+  distance = Point<long double>(2, 2, 2);
   // Nx, Ny, Nz
   grid = Point<size_t>(8, 8, 8);
   // h_x, h_y, h_z
@@ -82,33 +82,33 @@ void SolveData::initBorders() {
     }
 }
 
-double SolveData::calculatePhiOnBorder(const Point<int> pos) {
-  double x = center.x + pos.x * height.x;
-  double y = center.y + pos.y * height.y;
-  double z = center.z + pos.z * height.z;
+long double SolveData::calculatePhiOnBorder(const Point<int> pos) {
+  long double x = center.x + pos.x * height.x;
+  long double y = center.y + pos.y * height.y;
+  long double z = center.z + pos.z * height.z;
   return x * x + y * y + z * z;
 }
 
-double SolveData::calculateRo(const Point<int> pos) {
+long double SolveData::calculateRo(const Point<int> pos) {
   return 6 - paramA * calculatePhiOnBorder(pos);
 }
 
-double SolveData::calculateNextPhiAt(const Point<int> pos) {
-  double powHx = height.x * height.x;
-  double powHy = height.y * height.y;
-  double powHz = height.z * height.z;
+long double SolveData::calculateNextPhiAt(const Point<int> pos) {
+  long double powHx = height.x * height.x;
+  long double powHy = height.y * height.y;
+  long double powHz = height.z * height.z;
 
-  double first =
+  long double first =
       currentArea->get(pos.add(1, 0, 0)) + currentArea->get(pos.add(-1, 0, 0));
 
-  double second =
+  long double second =
       currentArea->get(pos.add(0, 1, 0)) + currentArea->get(pos.add(0, -1, 0));
 
-  double third =
+  long double third =
       currentArea->get(pos.add(0, 0, 1)) + currentArea->get(pos.add(0, 0, -1));
 
-  double divider = 2 / powHx + 2 / powHy + 2 / powHz + paramA;
-  double ro = calculateRo(pos.add(rank * currentArea->size.x, 0, 0));
+  long double divider = 2 / powHx + 2 / powHy + 2 / powHz + paramA;
+  long double ro = calculateRo(pos.add(rank * currentArea->size.x, 0, 0));
 
   first /= powHx;
   second /= powHy;
@@ -139,15 +139,15 @@ void SolveData::sendBorders() {
 
   if (!borderLower) {
     MPI_Isend(currentArea->getFlatSlice(1), (size.y + 2) * (size.z + 2),
-              MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
+              MPI_LONG_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &sendRequests[0]);
     MPI_Irecv(nextArea->getFlatSlice(0), (size.y + 2) * (size.z + 2),
-              MPI_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &recvRequests[0]);
+              MPI_LONG_DOUBLE, rank - 1, 123, MPI_COMM_WORLD, &recvRequests[0]);
   }
   if (!borderUpper) {
     MPI_Isend(currentArea->getFlatSlice(size.x), (size.y + 2) * (size.z + 2),
-              MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
+              MPI_LONG_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &sendRequests[1]);
     MPI_Irecv(nextArea->getFlatSlice(size.x + 1), (size.y + 2) * (size.z + 2),
-              MPI_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
+              MPI_LONG_DOUBLE, rank + 1, 123, MPI_COMM_WORLD, &recvRequests[1]);
   }
 }
 
@@ -162,9 +162,9 @@ void SolveData::calculateCenter() {
 }
 
 bool SolveData::needNext() {
-  double max = 0;
-  double value;
-  double allMax[proc_count];
+  long double max = 0;
+  long double value;
+  long double allMax[proc_count];
   const Point<size_t>& size = currentArea->size;
 
   for (size_t i = 1; i < size.x; i++)
@@ -176,7 +176,7 @@ bool SolveData::needNext() {
           max = value;
       }
 
-  MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
+  MPI_Allgather(&max, 1, MPI_LONG_DOUBLE, allMax, 1, MPI_LONG_DOUBLE, MPI_COMM_WORLD);
   for (size_t i = 0; i < proc_count; i++)
     if (max < allMax[i])
       max = allMax[i];
@@ -209,7 +209,7 @@ void SolveData::dumpIteration() {
   for (size_t x = 0; x < size.x + 2; x++) {
     for (size_t y = 0; y < size.y + 2; y++) {
       for (size_t z = 0; z < size.z + 2; z++) {
-        double value = currentArea->get(Point<size_t>(x, y, z));
+        long double value = currentArea->get(Point<size_t>(x, y, z));
         if (std::isnan(value)) {
           std::cout << " \e[0;31m" << value << "\e[0m " << std::flush;
           continue;

@@ -16,18 +16,18 @@ struct Area {
    * @param initial_approx Начальное приближение,
    * которым нужно проинициализировать область.
    */
-  Area(const Point<size_t> size, const double initial_approx);
+  Area(const Point<size_t> size, const long double initial_approx);
 
   /**
    * Получает значение из области.
    */
-  double get(const Point<int> pos) const noexcept;
+  long double get(const Point<int> pos) const noexcept;
 
   /**
    * Записывает значение в область.
    * Границы включаются.
    */
-  void set(const double value, const Point<size_t> pos) noexcept;
+  void set(const long double value, const Point<size_t> pos) noexcept;
 
   /**
    * Обменивается значениями с другой областью.
@@ -49,12 +49,12 @@ struct Area {
    *
    * @param num Номер плоскости.
    */
-  double* getFlatSlice(const size_t num) const;
+  long double* getFlatSlice(const size_t num) const;
 
   ~Area();
 
  private:
-  double* area;
+  long double* area;
 };
 
 #endif

@@ -47,13 +47,13 @@ class SolveData {
   ~SolveData();
 
  private:
-  Point<double> center;
-  Point<double> distance;
-  Point<double> height;
+  Point<long double> center;
+  Point<long double> distance;
+  Point<long double> height;
   Point<size_t> grid;
-  double paramA;
-  double epsilon;
-  double initial_approx;
+  long double paramA;
+  long double epsilon;
+  long double initial_approx;
   Area* currentArea;
   Area* nextArea;
   bool borderUpper;
@@ -71,17 +71,17 @@ class SolveData {
   /**
    * Вычисляет значение функции фи на границе области.
    */
-  double calculatePhiOnBorder(const Point<int> pos);
+  long double calculatePhiOnBorder(const Point<int> pos);
 
   /**
    * Вычисляет значение функции фи методом приближения внутри области.
    */
-  double calculateNextPhiAt(const Point<int> pos);
+  long double calculateNextPhiAt(const Point<int> pos);
 
   /**
    * Вычисляет значение функции ро.
    */
-  double calculateRo(const Point<int> pos);
+  long double calculateRo(const Point<int> pos);
 };
 
 #endif
