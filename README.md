@@ -9,5 +9,5 @@ http://ssd.sscc.ru/ru/chair/nsu/parallel-programming
 - 1
 - 2
 - 3
-- 4
+- ~~4~~ (ошибочки, требуется исправление)
 

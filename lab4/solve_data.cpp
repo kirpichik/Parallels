@@ -170,13 +170,13 @@ bool SolveData::needNext() {
       for (size_t k = 1; k < size.z; k++) {
         Point<size_t> pos(i, j, k);
         value = abs(currentArea->get(pos) - nextArea->get(pos));
-        if (max > value)
+        if (max < value)
           max = value;
       }
 
   MPI_Allgather(&max, 1, MPI_DOUBLE, allMax, 1, MPI_DOUBLE, MPI_COMM_WORLD);
   for (size_t i = 0; i < proc_count; i++)
-    if (max > allMax[i])
+    if (max < allMax[i])
       max = allMax[i];
 
   return max < epsilon;
