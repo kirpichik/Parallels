@@ -1,7 +1,9 @@
+
 #include <mpi.h>
 #include <cmath>
-#include <stdexcept>
 #include <iostream>
+#include <stdexcept>
+
 #include "solve_data.h"
 
 SolveData::SolveData(size_t proc_count, size_t rank) {
@@ -96,17 +98,17 @@ double SolveData::calculateNextPhiAt(const Point<int> pos) {
   double powHy = height.y * height.y;
   double powHz = height.z * height.z;
 
-  double first = currentArea->get(pos.add(1, 0, 0)) +
-                 currentArea->get(pos.add(-1, 0, 0));
+  double first =
+      currentArea->get(pos.add(1, 0, 0)) + currentArea->get(pos.add(-1, 0, 0));
 
-  double second = currentArea->get(pos.add(0, 1, 0)) +
-                  currentArea->get(pos.add(0, -1, 0));
+  double second =
+      currentArea->get(pos.add(0, 1, 0)) + currentArea->get(pos.add(0, -1, 0));
 
-  double third = currentArea->get(pos.add(0, 0, 1)) +
-                 currentArea->get(pos.add(0, 0, -1));
+  double third =
+      currentArea->get(pos.add(0, 0, 1)) + currentArea->get(pos.add(0, 0, -1));
 
   double divider = 2 / powHx + 2 / powHy + 2 / powHz + paramA;
-  double ro = calculateRo(pos);
+  double ro = calculateRo(pos.add(rank * currentArea->size.x, 0, 0));
 
   first /= powHx;
   second /= powHy;
@@ -125,9 +127,9 @@ void SolveData::calculateConcurrentBorders() {
     for (int j = 1; j <= static_cast<int>(size.z); j++) {
       Point<int> pos(1, i, j);
       if (!borderLower)
-        nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+        nextArea->set(calculateNextPhiAt(pos.add(0, 0, 0)), pos);
       if (!borderUpper)
-        nextArea->set(calculateNextPhiAt(pos.add((rank + 1) * size.x, 0, 0)),
+        nextArea->set(calculateNextPhiAt(pos.add(size.x - 1, 0, 0)),
                       pos.add(size.x - 1, 0, 0));
     }
 }
@@ -151,11 +153,11 @@ void SolveData::sendBorders() {
 
 void SolveData::calculateCenter() {
   const Point<size_t>& size = currentArea->size;
-  for (int i = 2; i < static_cast<int>(size.x) - 2; i++)
-    for (int j = 1; j < static_cast<int>(size.y); j++)
-      for (int k = 1; k < static_cast<int>(size.z); k++) {
+  for (int i = 1; i < static_cast<int>(size.x) + 1; i++)
+    for (int j = 1; j < static_cast<int>(size.y) + 1; j++)
+      for (int k = 1; k < static_cast<int>(size.z) + 1; k++) {
         Point<int> pos(i, j, k);
-        nextArea->set(calculateNextPhiAt(pos.add(rank * size.x, 0, 0)), pos);
+        nextArea->set(calculateNextPhiAt(pos), pos);
       }
 }
 
@@ -178,6 +180,9 @@ bool SolveData::needNext() {
   for (size_t i = 0; i < proc_count; i++)
     if (max < allMax[i])
       max = allMax[i];
+
+  if (rank == 0)
+    std::cout << "Max is: " << max << std::endl;
 
   return max < epsilon;
 }
@@ -216,6 +221,7 @@ void SolveData::dumpIteration() {
             std::cout << "\e[0;32m" << std::flush;
           else
             std::cout << "\e[0;36m" << std::flush;
+          // printf("%.10e", value);
           std::cout << value << "\e[0m" << std::flush;
         } else
           std::cout << value << std::flush;
@@ -225,3 +231,4 @@ void SolveData::dumpIteration() {
     std::cout << "=================================== x:" << x << std::endl;
   }
 }
+

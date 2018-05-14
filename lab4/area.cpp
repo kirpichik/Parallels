@@ -35,3 +35,4 @@ void Area::copyData(const Area& area) {
 double* Area::getFlatSlice(const size_t num) const {
   return area + (num * (size.y + 2) * (size.z + 2));
 }
+

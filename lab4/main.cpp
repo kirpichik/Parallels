@@ -25,13 +25,15 @@ int main(int argc, char* argv[]) {
     data.calculateCenter();
     data.waitCommunication();
     next = !data.needNext();
-    if (iter++ % 10000 == 0 && rank == 0) {
-      data.dumpIteration();
-      std::cout << "Iter number(in 10k) "<< iter << ". #############################" << std::endl;
-    }
     data.prepareNext();
+    if (rank == 0) {
+      data.dumpIteration();
+      std::cout << "Iter number " << ++iter << ". #############################"
+                << std::endl;
+    }
   }
 
   MPI_Finalize();
   return (EXIT_SUCCESS);
 }
+

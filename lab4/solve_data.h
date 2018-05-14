@@ -1,8 +1,8 @@
 #ifndef _SOLVE_DATA
 #define _SOLVE_DATA
 
-#include "point.h"
 #include "area.h"
+#include "point.h"
 
 class SolveData {
  public:
@@ -85,3 +85,4 @@ class SolveData {
 };
 
 #endif
+

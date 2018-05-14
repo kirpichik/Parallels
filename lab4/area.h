@@ -8,7 +8,6 @@
  * Подобласть
  */
 struct Area {
-
   const Point<size_t> size;
 
   /**
@@ -17,12 +16,12 @@ struct Area {
    * @param initial_approx Начальное приближение,
    * которым нужно проинициализировать область.
    */
-  Area(const Point<size_t> size, const  double initial_approx);
+  Area(const Point<size_t> size, const double initial_approx);
 
   /**
    * Получает значение из области.
    */
-  double get(const Point<int> pos)  const noexcept;
+  double get(const Point<int> pos) const noexcept;
 
   /**
    * Записывает значение в область.
