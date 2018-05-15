@@ -14,7 +14,7 @@ typedef struct generator_data {
 typedef size_t task_t;
 
 typedef struct model {
-  pthread_mutex_t mutex;
+  pthread_mutex_t tasks_mutex;
   size_t tasks_pos;
   size_t tasks_size;
   task_t* tasks;

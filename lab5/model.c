@@ -11,12 +11,12 @@ bool model_init(model_t* model,
   if (!model || !generator)
     return false;
 
-  if (pthread_mutex_init(&model->mutex, NULL))
+  if (pthread_mutex_init(&model->tasks_mutex, NULL))
     return false;
 
   if (!(model->tasks = (task_t*) malloc(sizeof(task_t) * tasks_num))) {
     int error = errno;
-    pthread_mutex_destroy(&model->mutex);
+    pthread_mutex_destroy(&model->tasks_mutex);
     errno = error;
     return false;
   }
@@ -33,10 +33,10 @@ bool model_init(model_t* model,
 }
 
 void model_release(model_t* model) {
-  if (!model || pthread_mutex_trylock(&model->mutex))
+  if (!model || pthread_mutex_trylock(&model->tasks_mutex))
     return;
 
-  pthread_mutex_destroy(&model->mutex);
+  pthread_mutex_destroy(&model->tasks_mutex);
   free(model->tasks);
 }
 
@@ -44,15 +44,17 @@ bool model_steal_task(model_t* model, task_t* task) {
   if (!model)
     return false;
 
-  if (pthread_mutex_lock(&model->mutex))
+  if (pthread_mutex_lock(&model->tasks_mutex))
     return false;
 
-  if (!model->tasks_pos)
+  if (!model->tasks_pos) {
+    pthread_mutex_unlock(&model->tasks_mutex);
     return false;
+  }
 
   (*task) = model->tasks[model->tasks_pos--];
 
-  pthread_mutex_unlock(&model->mutex);
+  pthread_mutex_unlock(&model->tasks_mutex);
   return true;
 }
 
@@ -60,15 +62,17 @@ bool model_add_task(model_t* model, task_t* task) {
   if (!model)
     return false;
 
-  if (pthread_mutex_lock(&model->mutex))
+  if (pthread_mutex_lock(&model->tasks_mutex))
     return false;
 
-  if (model->tasks_pos + 1 >= model->tasks_size)
+  if (model->tasks_pos + 1 >= model->tasks_size) {
+    pthread_mutex_unlock(&model->tasks_mutex);
     return false;
+  }
 
   model->tasks[model->tasks_pos++] = (*task);
 
-  pthread_mutex_unlock(&model->mutex);
+  pthread_mutex_unlock(&model->tasks_mutex);
   return true;
 }
 
@@ -77,12 +81,12 @@ size_t model_tasks_count(model_t* model) {
   if (!model)
     return 0;
 
-  if (pthread_mutex_lock(&model->mutex))
+  if (pthread_mutex_lock(&model->tasks_mutex))
     return 0;
 
   value = model->tasks_pos;
 
-  pthread_mutex_unlock(&model->mutex);
+  pthread_mutex_unlock(&model->tasks_mutex);
   return value;
 }
 
