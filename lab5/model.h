@@ -6,9 +6,9 @@
 #include <stdbool.h>
 
 typedef struct generator_data {
-  size_t iteration;
-  size_t rank;
-  size_t processes;
+  int iteration;
+  int rank;
+  int processes;
 } generator_data_t;
 
 typedef size_t task_t;

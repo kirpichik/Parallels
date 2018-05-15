@@ -5,9 +5,7 @@
 #include "executor.h"
 
 task_t executor_generate_task(generator_data_t* data) {
-  int rank = (int) data->rank;
-  int size = (int) data->processes;
-  return abs(rank - (int) (data->iteration % size));
+  return abs(data->rank - (data->iteration % data->processes));
 }
 
 result_t executor_exec_task(task_t* task) {
