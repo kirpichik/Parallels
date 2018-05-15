@@ -32,7 +32,7 @@ void comm_finish(size_t self_rank, MPI_Comm comm);
  *
  * @param comm Коммуникатор процессов.
  *
- * @return Ранг процесса, запросившего задачуб либо -1, если прием завершен.
+ * @return Ранг процесса, запросившего задачу, либо -1, если прием завершен.
  */
 int comm_wait_for_request(MPI_Comm comm);
 
