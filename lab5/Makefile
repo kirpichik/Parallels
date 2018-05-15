@@ -2,7 +2,7 @@
 CC=mpicc
 CFLAGS=-c -Wall -std=c99
 LDFLAGS=
-SOURCES=main.c
+SOURCES=main.c model.c
 HEADERS=
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=lab
