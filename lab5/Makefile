@@ -1,7 +1,7 @@
 
 CC=mpicc
 CFLAGS=-c -Wall -std=c99 -DDEBUG_LEVEL
-LDFLAGS=
+LDFLAGS=-lm -lpthread
 SOURCES=main.c model.c executor.c communicator.c
 HEADERS=
 OBJECTS=$(SOURCES:.c=.o)
