@@ -29,6 +29,7 @@ bool model_init(model_t* model,
     return false;
   }
 
+  model->data = data;
   model->tasks_pos = tasks_num - 1;
   model->tasks_size = tasks_num;
   model->interrupted = false;
@@ -93,6 +94,23 @@ bool model_steal_task_await(model_t* model, task_t* task) {
   pthread_cond_signal(&model->tasks_cond);
 
   pthread_mutex_unlock(&model->tasks_mutex);
+  return true;
+}
+
+bool model_await_for_empty(model_t* model) {
+  if (!model || pthread_mutex_lock(&model->tasks_mutex))
+    return false;
+
+  while (model->tasks_pos) {
+    pthread_cond_wait(&model->tasks_cond, &model->tasks_mutex);
+    if (model->interrupted) {
+      pthread_mutex_unlock(&model->tasks_mutex);
+      return false;
+    }
+  }
+
+  pthread_mutex_unlock(&model->tasks_mutex);
+
   return true;
 }
 

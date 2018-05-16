@@ -20,6 +20,7 @@ typedef struct model {
   size_t tasks_pos;
   size_t tasks_size;
   task_t* tasks;
+  generator_data_t data;
 } model_t;
 
 /**
@@ -83,6 +84,16 @@ bool model_steal_task(model_t* model, task_t* task);
  * @return true, если задача была забрана и false, если взятие прервано.
  */
 bool model_steal_task_await(model_t* model, task_t* task);
+
+/**
+ * Ожидает, пока в пулле задач закончатся задачи.
+ * Блокирует выполнение потока.
+ *
+ * @param model Модель.
+ *
+ * @return true, если задачи закончились и ожидание не было превано.
+ */
+bool model_await_for_empty(model_t* model);
 
 /**
  * Добавляет задачу в список задач.

@@ -25,8 +25,8 @@ int main(int argc, char* argv[]) {
 
   // Инициализация общих данных
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_level);
-  MPI_Comm_size(MPI_COMM_WORLD, &data->processes);
-  MPI_Comm_rank(MPI_COMM_WORLD, &data->rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &data.processes);
+  MPI_Comm_rank(MPI_COMM_WORLD, &data.rank);
   data.iteration = 0;
   model_init(&model, TASKS_NUM, data, &executor_generate_task);
 
@@ -55,6 +55,32 @@ int main(int argc, char* argv[]) {
  */
 static void* scanning_thread(void* state) {
   model_t* model = (model_t*) state;
+  task_t task;
+  bool found;
+
+  while (!model_is_interrupted(model)) {
+    if (!model_await_for_empty(model))
+      continue;
+
+    found = false;
+    for (int i = 0; i < model->data.processes; i++) {
+      if (i == model->data.rank)
+        continue;
+
+      if (comm_send_request_task(model->data.rank, i, &task, MPI_COMM_WORLD)) {
+        model_add_task(model, &task);
+        found = true;
+        break;
+      }
+    }
+
+    // Не найдено задач, рассылаем всем завершение
+    if (!found) {
+      model_interrupt(model);
+      for (int i = 0; i < model->data.processes; i++)
+        comm_finish(i, MPI_COMM_WORLD);
+    }
+  }
   return NULL;
 }
 
@@ -64,6 +90,7 @@ static void* scanning_thread(void* state) {
 static void* counting_thread(void* state) {
   model_t* model = (model_t*) state;
   task_t task;
+
   while (!model_is_interrupted(model)) {
     if (model_steal_task_await(model, &task))
       executor_exec_task(&task);
@@ -78,10 +105,14 @@ static void* awaiting_thread(void* state) {
   model_t* model = (model_t*) state;
   int res;
   task_t task;
-  while (!model_is_interrupted(model)) {
-    res = comm_wait_for_request(MPI_COMM_WORLD);
-    if (res == -1)
-      return NULL;
+  size_t received_finish = 0;
+
+  while (received_finish < model->data.processes) {
+    if ((res = comm_wait_for_request(MPI_COMM_WORLD)) == -1) {
+      received_finish++;
+      continue;
+    }
+
     if (model_steal_task(model, &task))
       comm_share_task(res, &task, MPI_COMM_WORLD);
     else

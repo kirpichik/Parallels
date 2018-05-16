@@ -22,7 +22,7 @@ bool comm_send_request_task(size_t self_rank, size_t receiver, task_t* task, MPI
 /**
  * Завершает блокирующий вызов ожидания входящих пакетов.
  *
- * @param self_rank Ранг данного процесса.
+ * @param self_rank Ранг процесса.
  * @param comm Коммуникатор процессов.
  */
 void comm_finish(size_t self_rank, MPI_Comm comm);
