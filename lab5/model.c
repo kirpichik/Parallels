@@ -50,7 +50,7 @@ void model_interrupt(model_t* model) {
 }
 
 bool model_is_interrupted(model_t* model) {
-  return !model && model->interrupted;
+  return model && model->interrupted;
 }
 
 void model_release(model_t* model) {

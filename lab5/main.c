@@ -2,11 +2,18 @@
 #include <stdbool.h>
 #include <pthread.h>
 #include <mpi.h>
+#include <stdio.h>
 
 #include "communicator.h"
 #include "executor.h"
 
-#define TASKS_NUM 100
+#ifdef DEBUG_LEVEL
+#define DEBUG(msg, rank) printf("%d:%s: %s\n", rank, __func__, msg);
+#else
+#define DEBUG(msg, rank) ;
+#endif
+
+#define TASKS_NUM 10000
 
 static void* counting_thread(void* state);
 static void* scanning_thread(void* state);
@@ -59,6 +66,7 @@ static void* scanning_thread(void* state) {
   bool found;
 
   while (!model_is_interrupted(model)) {
+    DEBUG("Awaiting for empty", model->data.rank);
     if (!model_await_for_empty(model))
       continue;
 
@@ -67,19 +75,24 @@ static void* scanning_thread(void* state) {
       if (i == model->data.rank)
         continue;
 
+      DEBUG("Sending request for task", model->data.rank);
       if (comm_send_request_task(model->data.rank, i, &task, MPI_COMM_WORLD)) {
+        DEBUG("Received task", model->data.rank);
         model_add_task(model, &task);
+        DEBUG("Task added", model->data.rank);
         found = true;
         break;
       }
     }
 
+    DEBUG("No free tasks", model->data.rank);
     // Не найдено задач, рассылаем всем завершение
     if (!found) {
       model_interrupt(model);
       for (int i = 0; i < model->data.processes; i++)
         comm_finish(i, MPI_COMM_WORLD);
     }
+    DEBUG("Finishes sent", model->data.rank);
   }
   return NULL;
 }
@@ -92,8 +105,11 @@ static void* counting_thread(void* state) {
   task_t task;
 
   while (!model_is_interrupted(model)) {
-    if (model_steal_task_await(model, &task))
+    DEBUG("Stealing task", model->data.rank);
+    if (model_steal_task_await(model, &task)) {
+      DEBUG("Executing task", model->data.rank);
       executor_exec_task(&task);
+    }
   }
   return NULL;
 }
@@ -108,15 +124,22 @@ static void* awaiting_thread(void* state) {
   size_t received_finish = 0;
 
   while (received_finish < model->data.processes) {
+    DEBUG("Waiting for input", model->data.rank);
     if ((res = comm_wait_for_request(MPI_COMM_WORLD)) == -1) {
+      DEBUG("Received finish", model->data.rank);
       received_finish++;
       continue;
     }
 
-    if (model_steal_task(model, &task))
+    DEBUG("Received request", model->data.rank);
+    if (model_steal_task(model, &task)) {
+      DEBUG("Task sent", model->data.rank);
       comm_share_task(res, &task, MPI_COMM_WORLD);
-    else
+    }
+    else {
+      DEBUG("No tasks", model->data.rank);
       comm_answer_no(res, MPI_COMM_WORLD);
+    }
   }
   return NULL;
 }
