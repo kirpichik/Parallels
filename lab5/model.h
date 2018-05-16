@@ -15,6 +15,7 @@ typedef size_t task_t;
 
 typedef struct model {
   pthread_mutex_t tasks_mutex;
+  pthread_cond_t tasks_cond;
   size_t tasks_pos;
   size_t tasks_size;
   task_t* tasks;
@@ -55,15 +56,23 @@ void model_release(model_t* model);
 bool model_steal_task(model_t* model, task_t* task);
 
 /**
+ * Забирает одну задачу из списка задач.
+ * Если задач в списке нет,
+ * блокирует выполнение потока до появления задачи.
+ *
+ * @param model Модель.
+ * @param task Результат получения задачи.
+ */
+void model_steal_task_await(model_t* model, task_t* task);
+
+/**
  * Добавляет задачу в список задач.
  * Если места в списке нет, возвращает false.
  *
  * @param model Модель.
  * @param task Добавляемая задача.
- *
- * @return true, если задача была добавлена.
  */
-bool model_add_task(model_t* model, task_t* task);
+void model_add_task(model_t* model, task_t* task);
 
 /**
  * Получает количество доступных задач.
