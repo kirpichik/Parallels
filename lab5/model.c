@@ -31,6 +31,7 @@ bool model_init(model_t* model,
 
   model->tasks_pos = tasks_num - 1;
   model->tasks_size = tasks_num;
+  model->interrupted = false;
 
   for (size_t i = 0; i < tasks_num; i++) {
     model->tasks[i] = generator(&data);
@@ -38,6 +39,17 @@ bool model_init(model_t* model,
   }
 
   return true;
+}
+
+void model_interrupt(model_t* model) {
+  if (!model)
+    return;
+  model->interrupted = true;
+  pthread_cond_signal(&model->tasks_cond);
+}
+
+bool model_is_interrupted(model_t* model) {
+  return !model && model->interrupted;
 }
 
 void model_release(model_t* model) {
@@ -65,30 +77,42 @@ bool model_steal_task(model_t* model, task_t* task) {
   return true;
 }
 
-void model_steal_task_await(model_t* model, task_t* task) {
-  if (!model || pthread_mutex_lock(&model->tasks_mutex))
-    return;
+bool model_steal_task_await(model_t* model, task_t* task) {
+  if (!model || model->interrupted || pthread_mutex_lock(&model->tasks_mutex))
+    return false;
 
-  while (!model->tasks_pos)
+  while (!model->tasks_pos) {
     pthread_cond_wait(&model->tasks_cond, &model->tasks_mutex);
+    if (model->interrupted) {
+      pthread_mutex_unlock(&model->tasks_mutex);
+      return false;
+    }
+  }
 
   (*task) = model->tasks[model->tasks_pos--];
   pthread_cond_signal(&model->tasks_cond);
 
   pthread_mutex_unlock(&model->tasks_mutex);
+  return true;
 }
 
-void model_add_task(model_t* model, task_t* task) {
+bool model_add_task(model_t* model, task_t* task) {
   if (!model || pthread_mutex_lock(&model->tasks_mutex))
-    return;
+    return false;
 
-  while (model->tasks_pos + 1 >= model->tasks_size)
+  while (model->tasks_pos + 1 >= model->tasks_size) {
     pthread_cond_wait(&model->tasks_cond, &model->tasks_mutex);
+    if (model->interrupted) {
+      pthread_mutex_unlock(&model->tasks_mutex);
+      return false;
+    }
+  }
 
   model->tasks[model->tasks_pos++] = (*task);
   pthread_cond_signal(&model->tasks_cond);
 
   pthread_mutex_unlock(&model->tasks_mutex);
+  return true;
 }
 
 size_t model_tasks_count(model_t* model) {

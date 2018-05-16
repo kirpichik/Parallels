@@ -16,6 +16,7 @@ typedef size_t task_t;
 typedef struct model {
   pthread_mutex_t tasks_mutex;
   pthread_cond_t tasks_cond;
+  volatile bool interrupted;
   size_t tasks_pos;
   size_t tasks_size;
   task_t* tasks;
@@ -36,6 +37,22 @@ bool model_init(model_t* model,
                 size_t tasks_num,
                 generator_data_t data,
                 task_t (*generator)(generator_data_t*));
+
+/**
+ * Разблокирует кондишоны для прерывания потоков.
+ *
+ * @param model Модель для прерывания.
+ */
+void model_interrupt(model_t* model);
+
+/**
+ * Проверяет, была ли модель прервана.
+ *
+ * @param model Модель.
+ *
+ * @return true, если прерывание было вызвано.
+ */
+bool model_is_interrupted(model_t* model);
 
 /**
  * Освобождает сохраненные данные в модели.
@@ -62,8 +79,10 @@ bool model_steal_task(model_t* model, task_t* task);
  *
  * @param model Модель.
  * @param task Результат получения задачи.
+ *
+ * @return true, если задача была забрана и false, если взятие прервано.
  */
-void model_steal_task_await(model_t* model, task_t* task);
+bool model_steal_task_await(model_t* model, task_t* task);
 
 /**
  * Добавляет задачу в список задач.
@@ -71,8 +90,10 @@ void model_steal_task_await(model_t* model, task_t* task);
  *
  * @param model Модель.
  * @param task Добавляемая задача.
+ *
+ * @return true, если задача была добавлена и false, если добавление прервано.
  */
-void model_add_task(model_t* model, task_t* task);
+bool model_add_task(model_t* model, task_t* task);
 
 /**
  * Получает количество доступных задач.

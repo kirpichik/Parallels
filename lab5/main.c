@@ -1,24 +1,53 @@
 
 #include <stdbool.h>
+#include <pthread.h>
+#include <mpi.h>
 
 #include "communicator.h"
 #include "executor.h"
+
+#define TASKS_NUM 100
 
 static void* counting_thread(void* state);
 static void* scanning_thread(void* state);
 static void* awaiting_thread(void* state);
 
-
 int main(int argc, char* argv[]) {
-  return 0;
-}
+  model_t model;
+  generator_data_t data;
+  int provided_level;
+  void* result;
 
-/**
- * Поток для вычисления задач.
- */
-static void* counting_thread(void* state) {
-  model_t* model = (model_t*) state;
-  return NULL;
+  pthread_attr_t attr;
+  pthread_t thread_scanning;
+  pthread_t thread_counting;
+  pthread_t thread_awaiting;
+
+  // Инициализация общих данных
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_level);
+  MPI_Comm_size(MPI_COMM_WORLD, &data->processes);
+  MPI_Comm_rank(MPI_COMM_WORLD, &data->rank);
+  data.iteration = 0;
+  model_init(&model, TASKS_NUM, data, &executor_generate_task);
+
+  // Инициализация и запуск потоков
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+  pthread_create(&thread_scanning, &attr, &scanning_thread, &model);
+  pthread_create(&thread_counting, &attr, &counting_thread, &model);
+  pthread_create(&thread_awaiting, &attr, &awaiting_thread, &model);
+
+  // Ожидание завершения потоков
+  pthread_join(thread_scanning, &result);
+  pthread_join(thread_counting, &result);
+  pthread_join(thread_awaiting, &result);
+
+  // Освобождение ресурсов
+  pthread_attr_destroy(&attr);
+  model_release(&model);
+  MPI_Finalize();
+  return 0;
 }
 
 /**
@@ -30,13 +59,26 @@ static void* scanning_thread(void* state) {
 }
 
 /**
+ * Поток для вычисления задач.
+ */
+static void* counting_thread(void* state) {
+  model_t* model = (model_t*) state;
+  task_t task;
+  while (!model_is_interrupted(model)) {
+    if (model_steal_task_await(model, &task))
+      executor_exec_task(&task);
+  }
+  return NULL;
+}
+
+/**
  * Поток ожидающий взаимодействие с процессом.
  */
 static void* awaiting_thread(void* state) {
   model_t* model = (model_t*) state;
   int res;
   task_t task;
-  while (true) {
+  while (!model_is_interrupted(model)) {
     res = comm_wait_for_request(MPI_COMM_WORLD);
     if (res == -1)
       return NULL;
