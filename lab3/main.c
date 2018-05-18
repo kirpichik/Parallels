@@ -14,7 +14,7 @@
 #define K 8
 
 void mult_matrix_parts(double*, double*, double*, size_t, size_t, size_t);
-void calc_matrix_sub_data(int**, int**, int**, int**, int[2], size_t);
+void calc_matrix_sub_data(int**, int**, int[2], size_t);
 void build_mpi_types(size_t, size_t, size_t, size_t, MPI_Datatype*, MPI_Datatype*);
 void matrix_mult_on_grid(int[3], int[2], double*, double*, double*, MPI_Comm);
 void create_matrixes(double**, double**, double**);
@@ -148,26 +148,16 @@ void build_mpi_types(size_t size_N, size_t size_K, size_t strip_A, size_t strip_
 }
 
 /**
- * Подсчет данных частей матриц для передачи между процессами.
+ * Подсчет данных частей матрицы для передачи между процессами.
  *
- * @param b_sizes Размеры кусков B.
- * @param b_displs Смещения кусков B.
  * @param c_sizes Размеры кусков C.
  * @param c_displs Смещения кусков C.
  * @param grid Параметры решетки.
  * @param strip_A Размер куска A для подсчета кусков C.
  */
-void calc_matrix_sub_data(int** b_sizes, int** b_displs, int** c_sizes, int** c_displs, int grid[2], size_t strip_A) {
+void calc_matrix_sub_data(int** c_sizes, int** c_displs, int grid[2], size_t strip_A) {
   size_t grid_width = grid[0];
   size_t grid_height = grid[1];
-
-  // Вычисляем размеры всех подматриц для B
-  (*b_displs) = (int*) malloc(grid_height * sizeof(int));
-  (*b_sizes) = (int*) malloc(grid_height * sizeof(int));
-  for (size_t j = 0; j < grid_height; j++) {
-    (*b_displs)[j] = j;
-    (*b_sizes)[j] = 1;
-  }
 
   // Размеры всех подматриц для C
   (*c_displs) = (int*) malloc(grid_width * grid_height * sizeof(int));
@@ -194,7 +184,7 @@ void mult_matrix_parts(double* part_A, double* part_B, double* part_C, size_t st
     for (size_t j = 0; j < strip_B; j++) {
       part_C[strip_B * i + j] = 0;
       for (size_t k = 0; k < size_N; k++)
-        part_C[strip_B * i + j] += + part_A[size_N * i + j] * part_B[strip_B * k + j];
+        part_C[strip_B * i + j] += part_A[size_N * i + j] * part_B[strip_B * k + j];
     }
 }
 
@@ -228,24 +218,18 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
   // Смещения и размеры подматриц B и C для передачи
   int* sub_C_sizes;
   int* sub_C_displs;
-  int* sub_B_sizes;
-  int* sub_B_displs;
   // Расширение типов частей для пересылки данных
   MPI_Datatype typeb = 0;
   MPI_Datatype typec = 0;
   // Коммуникаторы для полной решетки, подрешетки и копия исходного
   MPI_Comm comm_2D;
   MPI_Comm comm_1D[2];
-  MPI_Comm comm_copy;
   // Дополнительные переменные для создания карты
   int periods[2] = { 0, 0 };
   int remains[2];
 
-  // Копируем старый коммуникатор
-  MPI_Comm_dup(comm, &comm_copy);
-
   // Создаем карту сети
-  MPI_Cart_create(comm_copy, 2, grid_sizes, periods, 0, &comm_2D);
+  MPI_Cart_create(comm, 2, grid_sizes, periods, 0, &comm_2D);
 
   // Получаем наш ранг и координаты в решетке
   MPI_Comm_rank(comm_2D, &rank);
@@ -271,7 +255,7 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
     build_mpi_types(size_N, size_K, strip_A, strip_B, &typeb, &typec);
 
     // Вычисляем размеры всех подматриц
-    calc_matrix_sub_data(&sub_B_sizes, &sub_B_displs, &sub_C_sizes, &sub_C_displs, grid_sizes, strip_A);
+    calc_matrix_sub_data(&sub_C_sizes, &sub_C_displs, grid_sizes, strip_A);
   }
 
   // Нулевая ветвь передает горизонтальные полосы матрицы A по x координате
@@ -280,7 +264,7 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
 
   // Нулевая ветвь передает горизонтальные полосы матрицы B по y координате
   if (coords[0] == 0)
-    MPI_Scatterv(matrix_B, sub_B_sizes, sub_B_displs, typeb, part_B, size_N * strip_B, MPI_DOUBLE, 0, comm_1D[1]);
+    MPI_Scatter(matrix_B, 1, typeb, part_B, size_N * strip_B, MPI_DOUBLE, 0, comm_1D[1]);
 
   // Передаем подматрицы матрицы A по y плоскости
   MPI_Bcast(part_A, strip_A * size_N, MPI_DOUBLE, 0, comm_1D[1]);
@@ -291,12 +275,11 @@ void matrix_mult_on_grid(int sizes[3], int grid_sizes[2], double* matrix_A, doub
   mult_matrix_parts(part_A, part_B, part_C, strip_A, strip_B, size_N);
 
   // Собираем все куски в начале
-  MPI_Gather(part_C, strip_A * strip_B, MPI_DOUBLE, matrix_C, grid_width * grid_height - 1,/*sub_C_sizes, sub_C_displs,*/ typec, 0, comm_2D);
+  MPI_Gatherv(part_C, strip_A * strip_B, MPI_DOUBLE, matrix_C, sub_C_sizes, sub_C_displs, typec, 0, comm_2D);
 
   free(part_A);
   free(part_B);
   free(part_C);
-  MPI_Comm_free(&comm_copy);
   MPI_Comm_free(&comm_2D);
 
   for (size_t i = 0; i < 2; i++)
