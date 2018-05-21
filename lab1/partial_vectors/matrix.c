@@ -72,7 +72,7 @@ void multMatrixPart(double** matrix, double* vector, double* result, int* length
 		int send_id = (rank + 1) % pr_size;
 		int recv_id = (rank + pr_size - 1) % pr_size;
 
-		MPI_Sendrecv_replace(vector, send_len, MPI_DOUBLE, send_id, 777, 
+		MPI_Sendrecv_replace(vector, send_len, MPI_DOUBLE, send_id, 777,
 				recv_id, 777, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 }

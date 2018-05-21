@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 	while (1) {
 		// Count A * x_n
 		multMatrixPart(MATRIX_A, lengths[rank], VECTOR_X, multResult);
-		MPI_Allgatherv(multResult, lengths[rank], MPI_DOUBLE, collectedResult, 
+		MPI_Allgatherv(multResult, lengths[rank], MPI_DOUBLE, collectedResult,
 				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 
 		// Count A * x_n - b

@@ -21,6 +21,7 @@ int main(int argc, char* argv[]) {
 	double collectedResult[SIZE]; // Inter-result
 	double vectorBNorm; // Normalized vector b
 	int extendedPart;
+	double sumResult;
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -55,25 +56,21 @@ int main(int argc, char* argv[]) {
 	fillVectorPart(VECTOR_B, part_start,  part_size);
 
 	// Count ||b||
-	MPI_Allgatherv(VECTOR_B, part_size, MPI_DOUBLE, collectedResult, 
+	MPI_Allgatherv(VECTOR_B, part_size, MPI_DOUBLE, collectedResult,
 			lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);
 	vectorBNorm = normalize(collectedResult, SIZE);
 
 	while (1) {
 		// Count A * x_n
-		//printf("pr: %d multing matrix part...\n", rank);
 		multMatrixPart(MATRIX_A, VECTOR_X, partResult, lengths, displs, size, rank);
 
 		// Count A * x_n - b
 		subVectors(partResult, VECTOR_B, partResult, extendedPart);
 
 		// Check finish
-		/*MPI_Allgatherv(partResult, part_size, MPI_DOUBLE, collectedResult, 
-				lengths, displs, MPI_DOUBLE, MPI_COMM_WORLD);*/
 		double sum = 0;
 		for (size_t i = 0; i < part_size; i++)
-			sum += partResult[i];
-		double sumResult;
+			sum += partResult[i] * partResult[i];
 
 		MPI_Allreduce(&sum, &sumResult, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 		if (isFinish(sumResult, vectorBNorm))
@@ -87,7 +84,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	// Prints results
-	
+
 	printf("pr(%d): ", rank);
 	printVector(VECTOR_X, part_size);
 

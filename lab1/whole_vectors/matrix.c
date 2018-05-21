@@ -7,7 +7,7 @@
 
 void fillVector(double vector[SIZE]) {
 	for (size_t i = 0; i < SIZE; i++)
-		vector[i] = i + 1;
+		vector[i] = SIZE + 1;
 }
 
 void fillZero(double vector[SIZE]) {

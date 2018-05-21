@@ -1,7 +1,7 @@
 
 #include <stdbool.h>
 
-#define SIZE 1960
+#define SIZE 10
 #define THETA 0.001
 #define EPSILON 0.000001
 
@@ -28,7 +28,7 @@ void printVector(double*, int);
 /**
  * Prints the matrix.
  */
-void printMatrix(double**, int);
+void printMatrixPart(double**, int);
 
 /**
  * Normalize vector
