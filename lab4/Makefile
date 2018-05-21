@@ -1,6 +1,6 @@
 
 CC=mpic++
-CFLAGS=-c -Wall -std=c++11
+CFLAGS=-c -Wall -std=c++11 -DDEBUG_LEVEL
 LDFLAGS=
 SOURCES=main.cpp solve_data.cpp area.cpp
 HEADERS=

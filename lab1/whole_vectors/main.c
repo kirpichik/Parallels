@@ -70,9 +70,11 @@ int main(int argc, char* argv[]) {
 		subVectors(VECTOR_X, collectedResult, VECTOR_X);
 	}
 
+#ifdef DEBUG_LEVEL
 	// Zero rank
 	if (!rank)
 		printVector(VECTOR_X);
+#endif
 
 	free(multResult);
 	free(lengths);

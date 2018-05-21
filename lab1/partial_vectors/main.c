@@ -85,8 +85,10 @@ int main(int argc, char* argv[]) {
 
 	// Prints results
 
+#ifdef DEBUG_LEVEL
 	printf("pr(%d): ", rank);
 	printVector(VECTOR_X, part_size);
+#endif
 
 	free(partResult);
 	for (size_t i = 0; i < part_size; i++)

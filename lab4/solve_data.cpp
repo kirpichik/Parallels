@@ -184,10 +184,12 @@ bool SolveData::needNext() {
     if (max < allMax[i])
       max = allMax[i];
 
+#ifdef DEBUG_LEVEL
   if (rank == 0) {
     std::cout.precision(8);
     std::cout << "Max is: " << max << std::endl;
   }
+#endif
 
   return max < epsilon;
 }

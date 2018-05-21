@@ -1,6 +1,6 @@
 
 CC=mpicc
-CFLAGS=-c -Wall -std=c99
+CFLAGS=-c -Wall -std=c99 -DDEBUG_LEVEL
 LDFLAGS=-lm
 SOURCES=main.c matrix.c
 HEADERS=matrix.h

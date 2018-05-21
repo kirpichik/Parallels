@@ -29,7 +29,9 @@ int main(int argc, char** argv) {
   // Периодичность решетки
   int periods[2] = { 0, 0 };
 
+#ifdef DEBUG_LEVEL
   struct timeval tv1, tv2;
+#endif
   MPI_Comm comm;
 
   double* matrix_A = NULL;
@@ -55,18 +57,24 @@ int main(int argc, char** argv) {
   if (!rank)
     create_matrixes(&matrix_A, &matrix_B, &matrix_C);
 
+#ifdef DEBUG_LEVEL
   gettimeofday(&tv1, NULL);
+#endif
 
   // Выполняем работу
   matrix_mult_on_grid(matrixes_sizes, grid_size, matrix_A, matrix_B, matrix_C, comm);
 
+#ifdef DEBUG_LEVEL
   gettimeofday(&tv2, NULL);
   int exec_time = (tv2.tv_sec - tv1.tv_sec) * 1000000 + tv2.tv_usec - tv1.tv_usec;
   printf("rank = %d, time = %d\n", rank, exec_time);
+#endif
 
   // На начальном элементе выводим получившуюся матрицу и освобождаем память
   if (!rank) {
+#ifdef DEBUG_LEVEL
     print_matrix(matrix_C, M, K);
+#endif
 
     free(matrix_A);
     free(matrix_B);

@@ -16,12 +16,14 @@ int main(int argc, char* argv[]) {
   SolveData data(size, rank, EPSILON_PARAM, A_PARAM);
   bool next = true;
 
+#ifdef DEBUG_LEVEL
   if (rank == 0) {
     data.dumpIteration();
     std::cout << "0. #################################\n" << std::endl;
   }
 
   size_t iter = 0;
+#endif
   while (next) {
     data.calculateConcurrentBorders();
     data.sendBorders();
@@ -29,11 +31,13 @@ int main(int argc, char* argv[]) {
     data.waitCommunication();
     next = !data.needNext();
     data.prepareNext();
+#ifdef DEBUG_LEVEL
     if (rank == 0) {
       data.dumpIteration();
       std::cout << "Iter number " << ++iter << ". #############################"
                 << std::endl;
     }
+#endif
   }
 
   MPI_Finalize();
