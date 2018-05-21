@@ -9,25 +9,21 @@
 void solve(size_t);
 
 int main(int argc, char* argv[]) {
-	/*if (argc < 2) {
+	if (argc < 2) {
 		printf("Need argument: <threads count>\n");
 		return -1;
-	}*/
-	printf("TEST\n");
-	int v = 1;//atoi(argv[1]);
-	printf("TEST1 %d\n", v);
-	solve(v);
+	}
+	solve(atoi(argv[1]));
 	return 0;
 }
 
 void solve(size_t th) {
-	printf("TEST2\n");
-	fflush(stdout);
-	double MATRIX_A[SIZE][SIZE]; // Matrix A
-	double VECTOR_B[SIZE]; // Vector b
-	double VECTOR_X[SIZE]; // Vector x
-	double RESULT[SIZE]; // Inter-result
+	double* MATRIX_A = (double*) malloc(SIZE * SIZE * sizeof(double)); // Matrix A
+	double* VECTOR_B = (double*) malloc(SIZE * sizeof(double)); // Vector b
+	double* VECTOR_X = (double*) malloc(SIZE * sizeof(double)); // Vector x
+	double* RESULT = (double*) malloc(SIZE * sizeof(double)); // Inter-result
 	double vectorBNorm; // Normalized vector b
+	size_t count = 0;
 
 	omp_set_num_threads(th);
 
@@ -38,6 +34,7 @@ void solve(size_t th) {
 	vectorBNorm = normalize(VECTOR_B);
 
 	while (1) {
+		count++;
 		// Count A * x_n
 		multMatrix(MATRIX_A, VECTOR_X, RESULT);
 
@@ -55,6 +52,9 @@ void solve(size_t th) {
 		subVectors(VECTOR_X, RESULT, VECTOR_X);
 	}
 
+#ifdef DEBUG_LEVEL
+	printf("Count: %lu\n", count);
 	printVector(VECTOR_X);
+#endif
 }
 

@@ -3,17 +3,17 @@
 
 #define SIZE 10
 #define THETA 0.001
-#define EPSILON 0.000001
+#define EPSILON 10e-8
 
 /**
  * Fills the vector.
  */
-void fillVector(double[SIZE]);
+void fillVector(double*);
 
 /**
  * Fills the matrix part.
  */
-void fillMatrix(double[SIZE][SIZE]);
+void fillMatrix(double*);
 
 /**
  * Prints the vector.

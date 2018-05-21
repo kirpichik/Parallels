@@ -9,10 +9,10 @@
 #include "matrix.h"
 
 int main(int argc, char* argv[]) {
-	double MATRIX_A[SIZE][SIZE]; // Matrix A
-	double VECTOR_B[SIZE]; // Vector b
-	double VECTOR_X[SIZE]; // Vector x
-	double RESULT[SIZE]; // Inter-result
+	double* MATRIX_A = (double*) malloc(SIZE * SIZE * sizeof(double)); // Matrix A
+	double* VECTOR_B = (double*) malloc(SIZE * sizeof(double)); // Vector b
+	double* VECTOR_X = (double*) malloc(SIZE * sizeof(double)); // Vector x
+	double* RESULT = (double*) malloc(SIZE * sizeof(double)); // Inter-result
 	double vectorBNorm = 0; // Normalized vector b
 	double sumNorm = 0;
 	bool flag = true;
@@ -32,20 +32,22 @@ int main(int argc, char* argv[]) {
 	vectorBNorm = 0;
 	#pragma omp parallel
 	{
+		size_t count = 0;
 		#pragma omp for reduction(+:vectorBNorm)
 		for (size_t i = 0; i < SIZE; i++)
 			vectorBNorm += VECTOR_B[i] * VECTOR_B[i];
 
 		#pragma omp single
 		vectorBNorm = sqrt(vectorBNorm);
-		
+
 		while (flag) {
+			count++;
 			#pragma omp for reduction(+:sumNorm)
 			for (size_t i = 0; i < SIZE; i++) {
 				double valueX = 0;
 				// A * x
 				for (size_t j = 0; j < SIZE; j++)
-					valueX += MATRIX_A[i][j] * VECTOR_X[j];
+					valueX += MATRIX_A[i * SIZE + j] * VECTOR_X[j];
 
 				// A * x - b
 				valueX -= VECTOR_B[i];
@@ -57,13 +59,22 @@ int main(int argc, char* argv[]) {
 			{
 				memcpy(VECTOR_X, RESULT, sizeof(double) * SIZE);
 				sumNorm = sqrt(sumNorm);
-				flag = sumNorm / vectorBNorm >= EPSILON;
+				long double v = sumNorm / vectorBNorm;
+#ifdef DEBUG_LEVEL
+				printf("ITER: %Lf\n", v);
+#endif
+				flag = (v >= EPSILON);
 				sumNorm = 0;
 			}
 		}
+#ifdef DEBUG_LEVEL
+		printf("Count: %lu\n", count);
+#endif
 	}
 
+#ifdef DEBUG_LEVEL
 	printVector(VECTOR_X);
+#endif
 
 	return 0;
 }

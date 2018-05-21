@@ -1,6 +1,6 @@
 
-CC=gcc
-CFLAGS=-c -Wall -std=c99
+CC=gcc-7
+CFLAGS=-c -Wall -std=c99 -DDEBUG_LEVEL
 LDFLAGS=-lm -fopenmp
 SOURCES=main.c matrix.c
 HEADERS=matrix.h

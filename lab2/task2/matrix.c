@@ -6,18 +6,18 @@
 
 #include "matrix.h"
 
-void fillVector(double vector[SIZE]) {
+void fillVector(double* vector) {
 	for (size_t i = 0; i < SIZE; i++)
 		vector[i] = SIZE + 1;
 }
 
-void fillMatrix(double matrix[SIZE][SIZE]) {
+void fillMatrix(double* matrix) {
 	for (size_t i = 0; i < SIZE; i++)
 		for (size_t j = 0; j < SIZE; j++)
-			matrix[i][j] = i == j ? 2 : 1;
+			matrix[i * SIZE + j] = i == j ? 2 : 1;
 }
 
-void printVector(double vector[SIZE]) {
+void printVector(double* vector) {
 	for (size_t i = 0; i < SIZE; i++)
 		printf("%.2f ", vector[i]);
 	printf("\n");
