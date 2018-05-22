@@ -32,6 +32,11 @@ int main(int argc, char* argv[]) {
 
   // Инициализация общих данных
   MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_level);
+  if (provided_level != MPI_THREAD_MULTIPLE) {
+    fprintf(stderr, "ERROR: In this version there is not \
+implemented a required level of multithreading!\n");
+    return -1;
+  }
   MPI_Comm_size(MPI_COMM_WORLD, &data.processes);
   MPI_Comm_rank(MPI_COMM_WORLD, &data.rank);
   data.iteration = 0;
