@@ -24,6 +24,7 @@ int main(int argc, char* argv[]) {
   generator_data_t data;
   int provided_level;
   void* result;
+  size_t tasks_count;
 
   pthread_attr_t attr;
   pthread_t thread_scanning;
@@ -40,7 +41,9 @@ implemented a required level of multithreading!\n");
   MPI_Comm_size(MPI_COMM_WORLD, &data.processes);
   MPI_Comm_rank(MPI_COMM_WORLD, &data.rank);
   data.iteration = 0;
-  model_init(&model, TASKS_NUM, data, &executor_generate_task);
+  tasks_count = TASKS_NUM / data.processes
+    + (!data.rank ? TASKS_NUM % data.processes : 0);
+  model_init(&model, tasks_count, data, &executor_generate_task);
 
   // Инициализация и запуск потоков
   pthread_attr_init(&attr);
